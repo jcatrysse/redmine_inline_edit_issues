@@ -38,6 +38,11 @@ td input, td span.select2, td select {
     width: 100% !important;
 }
 
-table tbody td {
-    text-align: center !important;
+table tbody td span.expander {
+    text-align: left;
+}
+
+table tbody tr.issue td {
+    text-align: center;
+    vertical-align: middle;
 }

@@ -20,13 +20,15 @@ class InlineIssuesController < ApplicationController
   include InlineIssuesHelper
 
   def edit_multiple
-    description_column = @query.columns.select { |c| c.name == :description }.first
-    @query_inline_columns = description_column.present? ?
-                                @query.inline_columns.insert(1, description_column) :
-                                @query.inline_columns
+    @back_url = params[:back_url] || (@project ? project_issues_path(@project) : nil)
+    sort = params[:sort] || [['id', 'desc']]
+    @query ||= IssueQuery.new(name: '_', project: @project)
 
-    sort_init(@query.sort_criteria.empty? ? [['id', 'desc']] : @query.sort_criteria)
+    description_column = @query.columns.find { |c| c.name == :description }
+    @query_inline_columns = description_column ? @query.inline_columns.insert(1, description_column) : @query.inline_columns
+    sort_init(@query.sort_criteria.empty? ? [['id', 'desc']] : sort)
     sort_update(@query.sortable_columns)
+
     @query.sort_criteria = sort_criteria.to_a
 
     if @query.valid?
@@ -34,6 +36,7 @@ class InlineIssuesController < ApplicationController
       @issue_count = @query.issue_count
       @issue_pages = Paginator.new @issue_count, @limit, params['page']
       @offset ||= @issue_pages.offset
+
       @issues = @query.issues(:include => [:assigned_to, :tracker, :priority, :category, :fixed_version],
                               :order => sort_clause,
                               :offset => @offset,
@@ -41,42 +44,72 @@ class InlineIssuesController < ApplicationController
                               :conditions => inline_edit_condition)
 
       @ids = @issues.map(&:id)
-
       @issue_count_by_group = issue_count_by_group
-
       @priorities = IssuePriority.active
     else
-      # respond_to do |format|
-      # format.html { render(:template => 'issues/index', :layout => !request.xhr?) }
-      # format.any(:atom, :csv, :pdf) { render(:nothing => true) }
-      # format.api { render_validation_errors(@query) }
-      # end
+      flash[:error] = l('label_no_issues_selected')
+      redirect_back_or_default params[:back_url] and return
     end
-    @back_url = @project ? project_issues_path(@project) : params[:back_url]
-    @update_url = @project ? update_multiple_inline_issues_path(:project_id => @project) : update_multiple_inline_issues_path(:ids => @ids)
+
+     @update_url = @project ? update_multiple_inline_issues_path(:project_id => @project) : update_multiple_inline_issues_path(:ids => @ids)
   rescue ActiveRecord::RecordNotFound
     render_404
   rescue Query::StatementInvalid
     flash[:error] = l('label_no_issues_selected')
-    redirect_to :back
+    redirect_back_or_default params[:back_url]
   end
 
   def update_multiple
+    # Extract the issue IDs from the params[:issues] keys
+    issue_ids = params[:issues].keys
+
+    # Find the issues based on those IDs
+    @issues = Issue.where(id: issue_ids)
+    raise ActiveRecord::RecordNotFound if @issues.empty?
+
+    @projects = @issues.collect(&:project).compact.uniq
+    @project = @projects.first if @projects.size == 1
+
+    allow_edit_done_ratio = Setting.parent_issue_done_ratio != 'derived'
+    allow_edit_dates = Setting.parent_issue_dates != 'derived'
+    allow_edit_priority = Setting.parent_issue_priority != 'derived'
+
+    # Perform issue updates
     errors = []
-    puts params[:issues].inspect
-    Issue.find(params[:issues].keys).each do |i|
-      attribute_hash = params[:issues][i.id.to_s].to_unsafe_hash
-      upd = i.update(attribute_hash)
-      errors += i.errors.full_messages.map { |m| l(:label_issue) + " #{i.id}: " + m } if !upd
+    @issues.each do |issue|
+      issue.reload # To avoid stale issues
+
+      # Check if the issue is a parent issue (has children)
+      if issue.children.any? # Controleer of het een parent-taak is
+        attribute_hash = params[:issues][issue.id.to_s].to_unsafe_hash
+
+        # Block done_ratio if automatic calculation is enabled for parent tasks
+        attribute_hash.delete('done_ratio') unless allow_edit_done_ratio
+
+        # Block dates if automatic calculation is enabled for parent tasks
+        unless allow_edit_dates
+          attribute_hash.delete('start_date')
+          attribute_hash.delete('due_date')
+        end
+
+        # Block priority if automatic calculation is enabled for parent tasks
+        attribute_hash.delete('priority_id') unless allow_edit_priority
+
+      else
+        # If it's not a parent issue, update all fields as normal
+        attribute_hash = params[:issues][issue.id.to_s].to_unsafe_hash
+      end
+
+      # Perform the update
+      unless issue.update(attribute_hash)
+        errors += issue.errors.full_messages.map { |m| l(:label_issue) + " #{issue.id}: " + m }
+      end
     end
 
     if errors.present?
       flash[:error] = errors.to_sentence
-      redirect_to :back
-    else
-      flash[:notice] = l(:notice_successful_update)
-      redirect_back_or_default params[:back_url] #_project_issues_path(@project)
     end
+    redirect_back_or_default @back_url
   end
 
   private
@@ -151,11 +184,9 @@ class InlineIssuesController < ApplicationController
         joins << "LEFT OUTER JOIN #{User.table_name} authors ON authors.id = #{queried_table_name}.author_id"
       end
       order_options.scan(/cf_\d+/).uniq.each do |name|
-        column = available_columns.detect { |c| c.name.to_s == name }
+        column = @query.available_columns.detect { |c| c.name.to_s == name } # Use @query.available_columns
         join = column && column.custom_field.join_for_order_statement
-        if join
-          joins << join
-        end
+        joins << join if join
       end
     end
 
