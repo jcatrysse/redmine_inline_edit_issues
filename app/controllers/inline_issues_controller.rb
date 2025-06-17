@@ -21,6 +21,7 @@ class InlineIssuesController < ApplicationController
 
   def edit_multiple
     @back_url = params[:back_url] || (@project ? project_issues_path(@project) : nil)
+    params[:back_url] ||= @back_url
     sort = params[:sort] || [['id', 'desc']]
     @query ||= IssueQuery.new(name: '_', project: @project)
 
@@ -61,6 +62,7 @@ class InlineIssuesController < ApplicationController
 
   def update_multiple
     # Extract the issue IDs from the params[:issues] keys
+    @back_url = params[:back_url] || (@project ? project_issues_path(@project) : nil)
     issue_ids = params[:issues].keys
 
     # Find the issues based on those IDs

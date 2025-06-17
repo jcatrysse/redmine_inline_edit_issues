@@ -42,14 +42,16 @@ module InlineIssuesHelper
       when :fixed_version
         f.select :fixed_version_id, [["", ""]] + issue.project.versions.collect { |t| [t.name, t.id] }
       else
-        column_display_text(column, issue)
+        column_content(column, issue)
       end
     end
   end
 
   def column_display_text(column, issue)
-    value = column.value(issue)
+    column_content(column, issue)
+  end
 
+  def format_column_value(value)
     case value.class.name
     when 'Time'
       format_time(value)
@@ -62,7 +64,13 @@ module InlineIssuesHelper
     when 'FalseClass'
       l(:general_text_No)
     else
-      h(value)
+      if value.respond_to?(:name)
+        h(value.name)
+      elsif value.respond_to?(:title)
+        h(value.title)
+      else
+        h(value)
+      end
     end
   end
 
@@ -151,7 +159,7 @@ module InlineIssuesHelper
     custom_field = custom_value.custom_field
     field_name = "#{name}[#{issue.id}][custom_field_values][#{custom_field.id}]"
     field_name << "[]" if custom_field.multiple?
-    field_id = "#{name}_custom_field_values_#{custom_field.id}"
+    field_id = "#{name}_#{issue.id}_custom_field_values_#{custom_field.id}"
 
     tag_options = {:id => field_id, :class => "#{custom_field.field_format}_cf"}
 
@@ -179,7 +187,7 @@ module InlineIssuesHelper
                                                 custom_value,
                                                 :class => "#{custom_value.custom_field.field_format}_cf"
     when "list"
-    when "enumeration"
+    when "enumeration", "sql"
       blank_option = ''.html_safe
       unless custom_field.multiple?
         if custom_field.is_required?
@@ -196,6 +204,25 @@ module InlineIssuesHelper
         s << hidden_field_tag(field_name, '')
       end
       s
+    when "sql_search"
+      input = text_field_tag(field_name, custom_value.value, tag_options)
+      params_map = {}
+      if custom_field.respond_to?(:form_params) && custom_field.form_params.present?
+        params_map = Hash[
+          custom_field.form_params.to_s.each_line.map do |str|
+            key, value = str.split('=', 2)
+            next unless key && value
+            adjusted = value.gsub("$('#issue_custom_field_values_#{custom_field.id}')", "$('##{field_id}')")
+            [key.strip, adjusted.strip]
+          end.compact
+        ]
+      end
+      options_map = {
+        search_by_click: custom_field.respond_to?(:search_by_click) ? (custom_field.search_by_click || 0) : 0,
+        strict_selection: custom_field.respond_to?(:strict_selection) ? (custom_field.strict_selection || 0) : 0,
+        strict_error_message: custom_field.respond_to?(:strict_error_message) ? (custom_field.strict_error_message || 'it is not valid value') : 'it is not valid value'
+      }
+      input + javascript_tag("observeSqlField('#{field_id}', '#{Redmine::Utils.relative_url_root}/custom_sql_search/search?project_id=#{issue.project_id}&issue_id=#{issue.id}&custom_field_id=#{custom_field.id}', #{params_map.to_json}, #{options_map.to_json})")
     else
       text_field_tag(field_name, custom_value.value, tag_options)
     end
