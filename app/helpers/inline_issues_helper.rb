@@ -168,10 +168,10 @@ module InlineIssuesHelper
     case custom_field.field_format
     when "attachment"
       #render :partial => 'attachments/form', :locals => {:container => issue}
-    when "user"
-      assignable_users = (issue.project.assignable_users.to_a + [issue.project.default_assigned_to]).uniq.compact
+    when "user", "extended_user"
       blank_option = content_tag('option', "--- #{l(:actionview_instancetag_blank_option)} ---", :value => '')
-      select_tag(field_name, blank_option + principals_options_for_select(assignable_users, custom_value.value))
+      options = options_for_select(custom_field.possible_values_options(custom_value.customized), custom_value.value)
+      select_tag(field_name, blank_option + options)
     when "version"
       blank_option = content_tag('option', "--- #{l(:actionview_instancetag_blank_option)} ---", :value => '')
       select_tag(field_name, blank_option + version_options_for_select(issue.assignable_versions, custom_value.value))
