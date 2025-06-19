@@ -155,77 +155,56 @@ module InlineIssuesHelper
   #####
   # Return custom field html tag corresponding to its format
   #####
-  def custom_field_tag(name, custom_value, issue, f)
+  def custom_field_tag(name, custom_value, issue, _f)
     custom_field = custom_value.custom_field
     field_name = "#{name}[#{issue.id}][custom_field_values][#{custom_field.id}]"
     field_name << "[]" if custom_field.multiple?
     field_id = "#{name}_#{issue.id}_custom_field_values_#{custom_field.id}"
 
-    tag_options = {:id => field_id, :class => "#{custom_field.field_format}_cf"}
+    css = custom_field.css_classes
+    placeholder = custom_field.description
+    placeholder&.tr!("\n", " ") if custom_field.field_format != "text"
+    data = nil
+    if custom_field.full_text_formatting?
+      css += " wiki-edit"
+      data = { :auto_complete => true }
+    end
 
-    field_format = Redmine::FieldFormat.find(custom_field.field_format)
+    tag = custom_field.format.edit_tag(
+      self,
+      field_id,
+      field_name,
+      custom_value,
+      :class => css,
+      :placeholder => placeholder,
+      :data => data
+    )
 
-    case custom_field.field_format
-    when "attachment"
-      #render :partial => 'attachments/form', :locals => {:container => issue}
-    when "user", "extended_user"
-      blank_option = content_tag('option', "--- #{l(:actionview_instancetag_blank_option)} ---", :value => '')
-      options = options_for_select(custom_field.possible_values_options(custom_value.customized), custom_value.value)
-      select_tag(field_name, blank_option + options)
-    when "version"
-      blank_option = content_tag('option', "--- #{l(:actionview_instancetag_blank_option)} ---", :value => '')
-      select_tag(field_name, blank_option + version_options_for_select(issue.assignable_versions, custom_value.value))
-    when "date"
-      date_field_tag(field_name, custom_value.value, tag_options.merge(:size => 10)) +
-          calendar_for(field_id)
-    when "text"
-      text_area_tag(field_name, custom_value.value, tag_options.merge(:rows => 4, :cols => 65, :style => "width:auto; resize:both;"))
-    when "bool"
-      custom_value.custom_field.format.edit_tag self,
-                                                field_id,
-                                                field_name,
-                                                custom_value,
-                                                :class => "#{custom_value.custom_field.field_format}_cf"
-    when "list"
-    when "enumeration", "sql"
-      blank_option = ''.html_safe
-      unless custom_field.multiple?
-        if custom_field.is_required?
-          unless custom_field.default_value.present?
-            blank_option = content_tag('option', "--- #{l(:actionview_instancetag_blank_option)} ---", :value => '')
-          end
-        else
-          blank_option = content_tag('option')
-        end
-      end
-      s = select_tag(field_name, blank_option + options_for_select(custom_field.possible_values_options(custom_value.customized), custom_value.value),
-                     tag_options.merge(:multiple => custom_field.multiple?, :id => (issue.id.to_s + '_' + custom_field.name.to_s + '_enum').parameterize.underscore))
-      if custom_field.multiple?
-        s << hidden_field_tag(field_name, '')
-      end
-      s
-    when "sql_search"
-      input = text_field_tag(field_name, custom_value.value, tag_options)
+    if custom_field.field_format == "sql_search"
       params_map = {}
       if custom_field.respond_to?(:form_params) && custom_field.form_params.present?
         params_map = Hash[
           custom_field.form_params.to_s.each_line.map do |str|
-            key, value = str.split('=', 2)
+            key, value = str.split("=", 2)
             next unless key && value
             adjusted = value.gsub("$('#issue_custom_field_values_#{custom_field.id}')", "$('##{field_id}')")
             [key.strip, adjusted.strip]
           end.compact
         ]
       end
+
       options_map = {
         search_by_click: custom_field.respond_to?(:search_by_click) ? (custom_field.search_by_click || 0) : 0,
         strict_selection: custom_field.respond_to?(:strict_selection) ? (custom_field.strict_selection || 0) : 0,
         strict_error_message: custom_field.respond_to?(:strict_error_message) ? (custom_field.strict_error_message || 'it is not valid value') : 'it is not valid value'
       }
-      input + javascript_tag("observeSqlField('#{field_id}', '#{Redmine::Utils.relative_url_root}/custom_sql_search/search?project_id=#{issue.project_id}&issue_id=#{issue.id}&custom_field_id=#{custom_field.id}', #{params_map.to_json}, #{options_map.to_json})")
-    else
-      text_field_tag(field_name, custom_value.value, tag_options)
+
+      tag << javascript_tag(
+        "observeSqlField('#{field_id}', '#{Redmine::Utils.relative_url_root}/custom_sql_search/search?project_id=#{issue.project_id}&issue_id=#{issue.id}&custom_field_id=#{custom_field.id}', #{params_map.to_json}, #{options_map.to_json})"
+      )
     end
+
+    tag
   end
 
 end

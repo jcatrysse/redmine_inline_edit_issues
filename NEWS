@@ -3,5 +3,8 @@
 [Feature] Compatible with select2 plugin
 [TODO] Support file field
 
+19-06-2025 2.0.2
+[Feature] Support list and dependable custom field formats
+
 15-11-2020 2.0.0
 [Feature] Plugin is now compatible with redmine 3.4 and 4.1

@@ -32,6 +32,11 @@ This is a redmine plugin that allows you to edit fields of multiple issues in on
    the estimated time and spent time totals will appear below each group.
    The grand total will appear at the bottom.
 * As you edit the estimated time field, the group totals and grand totals will automatically update.
-   NOTE: Spent time is not an editable field on this screen.
+  NOTE: Spent time is not an editable field on this screen.
+
+### Compatibility
+This plugin works with the [Redmine Depending Custom Fields plugin](https://github.com/jcatrysse/redmine_depending_custom_fields).
+Dependent custom fields are fully supported on the inline edit screen when both plugins are installed.
+The [Custom Field SQL plugin](https://github.com/jcatrysse/custom_field_sql) is also compatible so `sql_search` fields function correctly.
 
 
