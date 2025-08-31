@@ -6,7 +6,7 @@ Redmine::Plugin.register :redmine_inline_edit_issues do
   name 'Redmine Inline Edit Issues plugin'
   author 'Omega Code'
   description 'This plugin allows inline editing of issue details'
-  version '0.0.1'
+  version '0.0.2'
   url 'https://github.com/omegacodepl/redmine_inline_edit_issues'
   author_url 'https://github.com/omegacodepl'
 

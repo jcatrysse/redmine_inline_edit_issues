@@ -6,7 +6,7 @@ $(document).ready(function () {
 
     $(function () {
         $('#inline_edit_form td input, #inline_edit_form td select, #inline_edit_form td span.select2').each(function () {
-            $.data(this, 'default', this.value);
+            $.data(this, 'default', getCurrentValue(this));
         }).css("color", "black").focus(function () {
             if (!$.data(this, 'edited')) {
                 // Change form inputs to red.
@@ -143,12 +143,7 @@ $(document).ready(function () {
 
 
     function getDefaultValue(element) {
-        if (element.is(":checkbox")) {
-            var originalValue = element.prop("defaultChecked") ? "True" : "False";
-        } else {
-            var originalValue = element.prop("defaultValue") || element.find('option[selected]').text();
-        }
-        return originalValue;
+        return element.data('default');
     }
 
 

@@ -23,6 +23,18 @@ module InlineIssuesHelper
         f.text_field :subject, size: 20
       when :assigned_to
         f.select :assigned_to_id, principals_options_for_select(issue.assignable_users, issue.assigned_to), :include_blank => true
+      when :urgency_id
+        if defined?(RedmineItilPriority) && RedmineItilPriority.settings_for(issue.project, issue.tracker)
+          f.select :urgency_id, [["", ""]] + RedmineItilPriority.urgency_options(issue.project, issue.tracker)
+        else
+          column_content(column, issue)
+        end
+      when :impact_id
+        if defined?(RedmineItilPriority) && RedmineItilPriority.settings_for(issue.project, issue.tracker)
+          f.select :impact_id, [["", ""]] + RedmineItilPriority.impact_options(issue.project, issue.tracker)
+        else
+          column_content(column, issue)
+        end
       when :estimated_hours
         f.text_field :estimated_hours, size: 3
       when :start_date

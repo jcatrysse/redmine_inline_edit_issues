@@ -38,5 +38,4 @@ This is a redmine plugin that allows you to edit fields of multiple issues in on
 This plugin works with the [Redmine Depending Custom Fields plugin](https://github.com/jcatrysse/redmine_depending_custom_fields).
 Dependent custom fields are fully supported on the inline edit screen when both plugins are installed.
 The [Custom Field SQL plugin](https://github.com/jcatrysse/custom_field_sql) is also compatible so `sql_search` fields function correctly.
-
-
+The [Redmine ITIL Priority](https://github.com/jcatrysse/redmine_itil_priority) is now also supported.
