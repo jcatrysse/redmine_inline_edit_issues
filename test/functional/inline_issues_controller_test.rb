@@ -171,6 +171,29 @@ class InlineIssuesControllerTest < Redmine::ControllerTest
     assert_equal 'Issue on project 2', Issue.find(4).subject
   end
 
+  def test_update_multiple_across_projects_should_need_the_permission_in_each_project
+    # jsmith: inline edit in project 1 (Manager), only edit_issues in project 2 (Developer)
+    assert Role.find(2).has_permission?(:edit_issues)
+    @request.session[:user_id] = 2
+    put :update_multiple, :params => {:project_id => 'ecookbook',
+                                      :issues => {'1' => {:subject => 'Changed inline'},
+                                                  '4' => {:subject => 'Changed inline too'}}}
+    assert_response 403
+    assert_equal 'Cannot print recipes', Issue.find(1).subject
+    assert_equal 'Issue on project 2', Issue.find(4).subject
+  end
+
+  def test_update_multiple_across_projects_without_a_project_in_the_url
+    grant_inline_edit(1, 2)
+    @request.session[:user_id] = 2
+    put :update_multiple, :params => {:back_url => '/issues',
+                                      :issues => {'1' => {:subject => 'Changed inline'},
+                                                  '4' => {:subject => 'Changed inline too'}}}
+    assert_redirected_to '/issues'
+    assert_equal 'Changed inline', Issue.find(1).subject
+    assert_equal 'Changed inline too', Issue.find(4).subject
+  end
+
   def test_update_multiple_should_refuse_issues_whose_attributes_are_not_editable
     grant_inline_edit(2)
     Role.find(2).remove_permission!(:edit_issues)
