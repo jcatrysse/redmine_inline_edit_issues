@@ -132,7 +132,8 @@ class InlineIssuesController < ApplicationController
     @issues = Issue.where(:id => issue_ids).to_a
     raise ActiveRecord::RecordNotFound if @issues.empty? || @issues.size != issue_ids.size
     raise ::Unauthorized unless @issues.all?(&:visible?)
-    return render_error(:status => 422) unless params[:issues].values.all? { |v| v.respond_to?(:to_unsafe_hash) }
+    # params[:issues][id], not params[:issues].values: Rails 6.1 (Redmine 5.1) returns raw hashes there
+    return render_error(:status => 422) unless issue_ids.all? { |id| params[:issues][id].respond_to?(:to_unsafe_hash) }
 
     @projects = @issues.filter_map(&:project).uniq
     @project = @projects.first if @projects.size == 1
