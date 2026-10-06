@@ -61,6 +61,28 @@ Kit notes: `redmine_clone.sh` needs `rsync` (installed with apt); `test_setup.sh
 `RMP_PROVISION_DB=1` as root calls `$SUDO -u postgres` with an empty `$SUDO` and fails, so the role
 was created by hand and the script run with `RMP_PROVISION_DB=0`.
 
+## Inventory of functions
+
+From README, init.rb (one permission `issues_inline_edit` in module Issue tracking, no menu, no
+settings, no migrations), routes (`edit_multiple` GET with and without project, `update_multiple`
+PUT), one hook (`view_issues_context_menu_start`), JS/CSS of the form. No macros, mail handling,
+API endpoints, rake tasks or cron. Scenarios in `test/e2e/`, evidence in `docs/e2e/<scenario>.md`.
+
+| function | how a user reaches it | scenario | screenshots (docs/e2e/) |
+|---|---|---|---|
+| "Edit Inline" in the context menu (2+ issues), keeps the list's columns and sort | issue list, select issues, right click | context_menu.mjs | context-menu-manager, -opens-form, -single-issue, -developer-disabled, -reporter-disabled |
+| Inline edit form, project and cross-project URL, read-only values as text, custom fields (user, list, key/value, workflow read-only), sorting by a column | the menu item | edit_form.mjs | edit-form-manager, -sorted, -without-project, -developer-refused, -reporter-refused, -outsider-private-refused, -anonymous-login |
+| Save: notice, history, validation error, forged requests refused or ignored (private issue, no permission, unknown id, author_id/closed_on) | Submit on the form | save.mjs | save-changed, -saved, -history, -validation-error, -unsafe-ignored, -outsider-private-refused, -reporter-refused, -developer-refused, -unknown-issue |
+| Client side: edited fields red, original value on hover, live estimated time total, Reset, Cancel | the form | client_side.mjs | client-side-edited-hover, -total, -reset, -cancel |
+| Grouping: group headers with expander, fold one, collapse/expand all, totals per group | group_by in the list options, then the menu item | grouping.mjs | grouping-grouped, -one-folded, -collapsed, -expanded |
+| Permission "Edit inline" in roles | Administration, Roles and permissions | permission.mjs | permission-report, -manager-refused |
+| Webhook `issue.updated` after an inline save (no page) | Redmine 7 webhooks | functional test `test_update_multiple_should_send_the_issue_updated_webhook_with_the_journal` | n.a. |
+| Plugin pages smoke, core issue flows with the plugin | | .codex/e2e smoke.mjs, core.mjs | smoke-01..20, core-* |
+
+E2E data: `test/e2e/seed.rb` adds a `developer` user (core Developer: may edit issues, no inline
+edit permission), custom fields (user, list, key/value, a text field read-only by workflow for "E2E
+full"), core Manager's workflow for "E2E full", and estimated times.
+
 ## Work list for the migration session
 
 In this order: things that break, security, the GEOxyz changes, the open items, then the checks.
