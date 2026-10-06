@@ -134,6 +134,15 @@ class InlineIssuesControllerTest < Redmine::ControllerTest
     assert_not_include 'Issue on project 2', response.body
   end
 
+  def test_edit_multiple_across_projects_with_the_permission_in_each
+    grant_inline_edit(1, 2)
+    @request.session[:user_id] = 2 # jsmith: Manager in project 1, Developer in project 2
+    get :edit_multiple, :params => {:ids => [1, 4], :set_filter => '1', :c => ['subject']}
+    assert_response :success
+    assert_select 'input[name=?]', 'issues[1][subject]'
+    assert_select 'input[name=?]', 'issues[4][subject]'
+  end
+
   def test_update_multiple_with_permission
     @request.session[:user_id] = 2
     put :update_multiple, :params => {:project_id => 'ecookbook',
