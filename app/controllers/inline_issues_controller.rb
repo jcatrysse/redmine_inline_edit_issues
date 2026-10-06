@@ -90,6 +90,10 @@ class InlineIssuesController < ApplicationController
         attribute_hash = params[:issues][issue.id.to_s].to_unsafe_hash
       end
 
+      # The form submits every visible field: an unchanged priority is no choice of the user, and
+      # assigning it would overrule a priority that a plugin derives (ITIL impact and urgency)
+      attribute_hash.delete('priority_id') if attribute_hash['priority_id'].to_s == issue.priority_id.to_s
+
       # Perform the update, through the same safe attributes and workflow rules as the issue form
       issue.init_journal(User.current)
       issue.safe_attributes = attribute_hash

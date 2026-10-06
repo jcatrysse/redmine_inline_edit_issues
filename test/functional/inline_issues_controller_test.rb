@@ -195,6 +195,25 @@ class InlineIssuesControllerTest < Redmine::ControllerTest
     assert_nil issue.closed_on
   end
 
+  def test_update_multiple_should_not_assign_a_priority_that_was_not_changed
+    # The form submits every visible field. A plugin that derives the priority (ITIL priority
+    # from impact and urgency) takes an assigned priority for a choice of the user.
+    @request.session[:user_id] = 2
+    Issue.any_instance.expects(:priority_id=).never
+    put :update_multiple, :params => {:project_id => 'ecookbook',
+                                      :issues => {'1' => {:subject => 'Changed inline', :priority_id => '4'}}}
+    assert_response 302
+    assert_equal 'Changed inline', Issue.find(1).subject
+  end
+
+  def test_update_multiple_should_assign_a_changed_priority
+    @request.session[:user_id] = 2
+    put :update_multiple, :params => {:project_id => 'ecookbook',
+                                      :issues => {'1' => {:priority_id => '5'}}}
+    assert_response 302
+    assert_equal 5, Issue.find(1).priority_id
+  end
+
   def test_update_multiple_should_respect_workflow_read_only_fields
     WorkflowPermission.create!(:role_id => 1, :tracker_id => 1, :old_status_id => 1,
                                :field_name => 'subject', :rule => 'readonly')
