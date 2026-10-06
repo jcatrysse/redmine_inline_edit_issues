@@ -4,6 +4,8 @@
 #   E2E full   gets core Manager's workflow (the generic seed gives it none)
 #   developer  core role "Developer" in e2e-project: may edit issues, but has no inline
 #              edit permission
+#   editor     role "E2E full" in e2e-project only: has the permission there, but may not
+#              see e2e-private
 #   custom fields on every tracker of e2e-project: a user field, a list, a key/value list,
 #              and a text field that the workflow makes read-only for the "E2E full" role
 #   estimated hours on the open issues, for the totals
@@ -22,6 +24,17 @@ developer_role = Role.find_by!(name: 'Developer')
 developer_role.remove_permission!(:issues_inline_edit) if developer_role.has_permission?(:issues_inline_edit)
 unless Member.where(user_id: developer.id, project_id: project.id).exists?
   Member.create!(principal: developer, project: project, roles: [developer_role])
+end
+
+# editor: every permission (inline edit included) in e2e-project, no access to e2e-private
+editor = User.find_by(login: 'editor') ||
+         User.new(login: 'editor', firstname: 'Editor', lastname: 'E2E', mail: 'editor@example.net')
+editor.password = editor.password_confirmation = user_password
+editor.must_change_passwd = false
+editor.status = User::STATUS_ACTIVE
+editor.save!(validate: false)
+unless Member.where(user_id: editor.id, project_id: project.id).exists?
+  Member.create!(principal: editor, project: project, roles: [Role.find_by!(name: 'E2E full')])
 end
 
 def e2e_custom_field(name, attrs)
@@ -66,4 +79,4 @@ end
   issue.save!
 end
 
-puts "Plugin seed: developer (Developer, no inline edit), #{IssueCustomField.where('name LIKE ?', 'E2E %').count} custom fields"
+puts "Plugin seed: developer (Developer, no inline edit), editor (e2e-project only), #{IssueCustomField.where('name LIKE ?', 'E2E %').count} custom fields"

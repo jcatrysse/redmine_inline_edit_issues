@@ -1,6 +1,7 @@
 // Saving the inline edit form (/inline_issues/update_multiple): a change is saved, noticed and
 // recorded in the issue's history; a validation error is reported and saves nothing; forged
-// requests (an issue of a private project, a user without the permission, a field that is
+// requests (an issue of a private project, also by a user who has the permission in the
+// project of the URL; a user without the permission; a field that is
 // not editable) are refused or ignored. The forged requests are real form posts with the
 // user's own CSRF token, so the screenshots show what the browser got.
 import { e2e } from '../../.codex/e2e/lib.mjs';
@@ -93,6 +94,14 @@ await t.go('/projects');
 status = await forge({ [`issues[${priv}][subject]`]: 'Hacked by outsider' });
 if (status !== 403) t.problems.push(`outsider on a private issue: HTTP ${status}, expected 403`);
 await t.shot('outsider-private-refused', 'A non-member posting a change to an issue of the private project is refused (403)');
+
+// the hole of the old update_multiple: the permission in the project of the URL was enough
+// to change an issue of a private project the user cannot even see
+await t.login('editor');
+await t.go(`/projects/${P}/issues`);
+status = await forge({ [`issues[${priv}][subject]`]: 'Hacked by editor', [`issues[${priv}][author_id]`]: '1' });
+if (status !== 403) t.problems.push(`editor (permission in ${P}) on an issue of e2e-private: HTTP ${status}, expected 403`);
+await t.shot('editor-private-refused', `A user with the permission in ${P} posting a change to an issue of e2e-private, which he cannot see, is refused (403)`);
 
 await t.login('reporter');
 await t.go(`/projects/${P}/issues`);
