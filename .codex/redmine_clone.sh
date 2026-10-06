@@ -26,12 +26,10 @@ case "$REDMINE_VERSION" in
 esac
 REDMINE_REPO="${REDMINE_REPO:-$default_repo}"
 
-for tool in git rsync; do
-  command -v "$tool" >/dev/null 2>&1 || {
-    echo "ERROR: '$tool' is required but not installed." >&2
-    exit 1
-  }
-done
+command -v git >/dev/null 2>&1 || {
+  echo "ERROR: 'git' is required but not installed." >&2
+  exit 1
+}
 
 if ! git ls-remote --heads "$REDMINE_REPO" "$REDMINE_VERSION" | grep -q "refs/heads/$REDMINE_VERSION\$"; then
   echo "ERROR: branch '$REDMINE_VERSION' not found on $REDMINE_REPO" >&2
@@ -52,7 +50,18 @@ case "$REDMINE_DIR" in
   "$PLUGIN_ROOT"/*) excludes+=(--exclude "/${REDMINE_DIR#"$PLUGIN_ROOT"/}/") ;;
 esac
 mkdir -p "$REDMINE_DIR/plugins/$PLUGIN_NAME"
-rsync -a --delete "${excludes[@]}" "$PLUGIN_ROOT/" "$REDMINE_DIR/plugins/$PLUGIN_NAME/"
+if command -v rsync >/dev/null 2>&1; then
+  rsync -a --delete "${excludes[@]}" "$PLUGIN_ROOT/" "$REDMINE_DIR/plugins/$PLUGIN_NAME/"
+else
+  # Same result without rsync (not installed in every container): empty the copy, then tar
+  # the plugin over with the same excludes, written as tar patterns.
+  tar_excludes=(--exclude ./.git)
+  case "$REDMINE_DIR" in
+    "$PLUGIN_ROOT"/*) tar_excludes+=(--exclude "./${REDMINE_DIR#"$PLUGIN_ROOT"/}") ;;
+  esac
+  find "$REDMINE_DIR/plugins/$PLUGIN_NAME" -mindepth 1 -delete
+  tar -C "$PLUGIN_ROOT" "${tar_excludes[@]}" -cf - . | tar -C "$REDMINE_DIR/plugins/$PLUGIN_NAME" -xf -
+fi
 
 for extra in ${RMP_EXTRA_PLUGINS:-}; do
   url="${extra%@*}"; branch="${extra##*@}"
