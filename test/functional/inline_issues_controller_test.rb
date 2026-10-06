@@ -52,6 +52,16 @@ class InlineIssuesControllerTest < Redmine::ControllerTest
     assert_select 'input[name=?]', 'issues[2][subject]'
   end
 
+  def test_edit_multiple_should_show_the_status_as_text_without_workflow_transitions
+    WorkflowTransition.where(:role_id => 1).delete_all
+    @request.session[:user_id] = 2
+    get :edit_multiple, :params => {:project_id => 'ecookbook', :ids => [1, 2]}
+    assert_response :success
+    assert_select 'select[name=?]', 'issues[1][status_id]', 0
+    assert_select 'tr#issue-1 td.status', :text => /New/
+    assert_select 'input[name=?]', 'issues[1][subject]'
+  end
+
   def test_edit_multiple_should_show_custom_fields_as_inputs_or_read_only_values
     WorkflowPermission.create!(:role_id => 1, :tracker_id => 1, :old_status_id => 1,
                                :field_name => '2', :rule => 'readonly')

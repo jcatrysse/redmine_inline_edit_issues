@@ -33,7 +33,9 @@ module InlineIssuesHelper
       when :tracker
         f.select :tracker_id, issue.project.trackers.collect { |t| [t.name, t.id] }
       when :status
-        f.select :status_id, issue.new_statuses_allowed_to.collect { |p| [p.name, p.id] }
+        # Like the issue form: without a workflow transition the status is not editable
+        statuses = issue.new_statuses_allowed_to
+        statuses.present? ? f.select(:status_id, statuses.collect { |p| [p.name, p.id] }) : column_content(column, issue)
       when :priority
         f.select :priority_id, @priorities.collect { |p| [p.name, p.id] }
       when :subject
