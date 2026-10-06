@@ -77,6 +77,21 @@ class InlineIssuesControllerTest < Redmine::ControllerTest
     assert_select 'tr#issue-5 input, tr#issue-5 select, tr#issue-5 textarea', 0
   end
 
+  def test_edit_multiple_grouped_should_render_core_group_rows
+    @request.session[:user_id] = 2
+    get :edit_multiple, :params => {:project_id => 'ecookbook', :ids => [1, 2, 3], :set_filter => '1',
+                                    :group_by => 'tracker', :c => ['subject', 'estimated_hours']}
+    assert_response :success
+    assert_select 'tr.group span.expander', 2
+    if Redmine::VERSION::MAJOR >= 6
+      # core's toggleRowGroup and collapse/expand all switch the SVG icon of the expander
+      assert_select 'tr.group span.expander svg use[href$=?]', '#icon--angle-down', 2
+    end
+    # a totals row is not a group header: collapse/expand all would look for its expander
+    assert_select 'tr.inline_group_totals', 2
+    assert_select 'tr.group.inline_group_totals', 0
+  end
+
   def test_update_multiple_with_permission
     @request.session[:user_id] = 2
     put :update_multiple, :params => {:project_id => 'ecookbook',

@@ -38,6 +38,10 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
 - Context menu item: SVG icon (Redmine 6+), disabled without the plugin's permission on the
   issues' projects (it led to a 403), back_url parsed with Rack instead of `CGI.parse` (gone in
   Ruby 4.0, which Redmine 7 allows) and no 500 on a back_url that cannot be parsed.
+- Grouped edit form: SVG expander like core, and the group totals rows no longer carry the
+  `group` class; on Redmine 6+ "Collapse all/Expand all" threw
+  `Cannot read properties of undefined (reading 'getElementsByTagName')` on them (seen in the
+  browser on 7.0 before the fix).
 
 ## Baseline (2026-10-06, before any change, branch head `f60940a`)
 

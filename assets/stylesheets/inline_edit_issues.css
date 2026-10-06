@@ -21,7 +21,7 @@
     text-align: center;
 }
 
-tr.group.inline_group_totals td {
+tr.inline_group_totals td {
     border-bottom: none !important;
     font-weight: normal !important;
 }
