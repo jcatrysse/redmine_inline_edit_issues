@@ -35,6 +35,9 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
 - Edit form follows the same rules: issues the user cannot edit (or in a project without the
   plugin's permission) and fields that are read-only for the user (workflow, derived parent
   values, read-only custom fields) are shown as text instead of inputs whose value would be dropped.
+- Context menu item: SVG icon (Redmine 6+), disabled without the plugin's permission on the
+  issues' projects (it led to a 403), back_url parsed with Rack instead of `CGI.parse` (gone in
+  Ruby 4.0, which Redmine 7 allows) and no 500 on a back_url that cannot be parsed.
 
 ## Baseline (2026-10-06, before any change, branch head `f60940a`)
 

@@ -1,14 +1,19 @@
 <% if !@issue and params[:back_url].present? %>
     <li>
     	<%
-    	uri = URI.parse(params[:back_url])
-    	if uri.query.present?
-	    	args = CGI.parse(uri.query)
-	    	col = args.keys.include?('c[]') ? args['c[]'] : nil
-				sort = args['sort'] ? args['sort'].first : nil
-	    end
+    	# Keep the columns and the sort order of the issue list the menu was opened on
+    	begin
+    		uri = URI.parse(params[:back_url])
+    		args = uri.query.present? ? Rack::Utils.parse_nested_query(uri.query) : {}
+    	rescue URI::InvalidURIError, TypeError, ArgumentError
+    		args = {}
+    	end
+    	col = args['c'].is_a?(Array) ? args['c'] : nil
+    	sort = args['sort'].is_a?(String) ? args['sort'] : nil
+    	label = respond_to?(:sprite_icon) ? sprite_icon('edit', l(:button_inline_edit)) : l(:button_inline_edit)
+    	allowed = @can[:edit] && User.current.allowed_to?(:issues_inline_edit, @projects)
     	%>
-        <%= context_menu_link l(:button_inline_edit), @project ? edit_multiple_project_inline_issues_path(@project, :ids => @issue_ids, :back_url => params[:back_url], :c => col, :sort => sort) : edit_multiple_inline_issues_path(:ids => @issue_ids, :back_url => params[:back_url], :c => col, :sort => sort), :class => 'icon icon-edit', :disabled => !@can[:edit] %>
+        <%= context_menu_link label, @project ? edit_multiple_project_inline_issues_path(@project, :ids => @issue_ids, :back_url => params[:back_url], :c => col, :sort => sort) : edit_multiple_inline_issues_path(:ids => @issue_ids, :back_url => params[:back_url], :c => col, :sort => sort), :class => 'icon icon-edit', :disabled => !allowed %>
         <%#= context_menu_link l(:button_inline_edit), '#', :onclick => "$('#query_form').attr('action', '"+(@project ? edit_multiple_project_inline_issues_path(@project, :ids => @issue_ids) : edit_multiple_inline_issues_path(:ids => @issue_ids, :back_url => params[:back_url]))+"').submit();", :class => 'icon-edit', :disabled => !@can[:edit] %>
     </li>
 <% end %>
