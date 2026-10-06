@@ -101,6 +101,7 @@ class InlineIssuesControllerTest < Redmine::ControllerTest
                                     :group_by => 'tracker', :c => ['subject', 'estimated_hours']}
     assert_response :success
     assert_select 'tr.group span.expander', 2
+    assert_select 'tr.group span.badge.badge-count.count', 2
     if Redmine::VERSION::MAJOR >= 6
       # core's toggleRowGroup and collapse/expand all switch the SVG icon of the expander
       assert_select 'tr.group span.expander svg use[href$=?]', '#icon--angle-down', 2
