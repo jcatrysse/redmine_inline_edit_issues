@@ -6,11 +6,28 @@ module InlineIssuesHelper
     @project.present? ? @project.id : ""
   end
 
+  # Issue attribute behind each editable column, to leave out what safe_attributes= would ignore
+  INLINE_EDIT_ATTRIBUTES = {
+    :tracker => 'tracker_id', :status => 'status_id', :priority => 'priority_id', :subject => 'subject',
+    :assigned_to => 'assigned_to_id', :urgency_id => 'urgency_id', :impact_id => 'impact_id',
+    :estimated_hours => 'estimated_hours', :start_date => 'start_date', :due_date => 'due_date',
+    :done_ratio => 'done_ratio', :is_private => 'is_private', :description => 'description',
+    :category => 'category_id', :fixed_version => 'fixed_version_id'
+  }.freeze
+
+  # The update refuses issues the user cannot edit, so they are shown as text
+  def inline_editable?(issue)
+    issue.attributes_editable? && User.current.allowed_to?(:issues_inline_edit, issue.project)
+  end
+
   def column_form_content(column, issue, f)
-    if column.class.name == "QueryCustomFieldColumn"
+    attribute = INLINE_EDIT_ATTRIBUTES[column.name]
+    if !inline_editable?(issue) || (attribute && !issue.safe_attribute?(attribute))
+      column_content(column, issue)
+    elsif column.class.name == "QueryCustomFieldColumn"
       custom_field_values = issue.editable_custom_field_values
       value = custom_field_values.detect { |cfv| cfv.custom_field_id == column.custom_field.id }
-      custom_field_tag :issues, value, issue, f if value.present?
+      value.present? ? custom_field_tag(:issues, value, issue, f) : column_content(column, issue)
     else
       case column.name
       when :tracker

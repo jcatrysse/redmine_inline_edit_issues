@@ -32,6 +32,9 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
   permission is checked on the projects of the submitted issues, every issue must have editable
   attributes, values go through `init_journal` + `safe_attributes=` (workflow, editauthor, ITIL).
   16 tests, 9 failures and 2 errors without the fix.
+- Edit form follows the same rules: issues the user cannot edit (or in a project without the
+  plugin's permission) and fields that are read-only for the user (workflow, derived parent
+  values, read-only custom fields) are shown as text instead of inputs whose value would be dropped.
 
 ## Baseline (2026-10-06, before any change, branch head `f60940a`)
 

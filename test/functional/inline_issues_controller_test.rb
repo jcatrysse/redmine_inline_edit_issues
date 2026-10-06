@@ -31,6 +31,52 @@ class InlineIssuesControllerTest < Redmine::ControllerTest
     assert_response 403
   end
 
+  def test_edit_multiple_should_show_workflow_read_only_fields_as_text
+    WorkflowPermission.create!(:role_id => 1, :tracker_id => 1, :old_status_id => 1,
+                               :field_name => 'subject', :rule => 'readonly')
+    @request.session[:user_id] = 2
+    get :edit_multiple, :params => {:project_id => 'ecookbook', :ids => [1, 2]}
+    assert_response :success
+    assert_select 'input[name=?]', 'issues[1][subject]', 0
+    assert_select 'tr#issue-1 td.subject', :text => /Cannot print recipes/
+    assert_select 'select[name=?]', 'issues[1][status_id]'
+    # issue 2 is a feature request (tracker 2): the rule does not apply
+    assert_select 'input[name=?]', 'issues[2][subject]'
+  end
+
+  def test_edit_multiple_should_show_custom_fields_as_inputs_or_read_only_values
+    WorkflowPermission.create!(:role_id => 1, :tracker_id => 1, :old_status_id => 1,
+                               :field_name => '2', :rule => 'readonly')
+    @request.session[:user_id] = 2
+    get :edit_multiple, :params => {:project_id => 'ecookbook', :ids => [1, 3], :set_filter => '1',
+                                    :c => ['subject', 'cf_2', 'cf_8']}
+    assert_response :success
+    assert_select 'input[name=?]', 'issues[1][custom_field_values][2]', 0
+    assert_select 'tr#issue-1 td.cf_2', :text => /125/
+    assert_select 'input[name=?][value=?]', 'issues[1][custom_field_values][8]', '2009-12-01'
+  end
+
+  def test_edit_multiple_should_show_issues_whose_attributes_are_not_editable_as_text
+    grant_inline_edit(2)
+    Role.find(2).remove_permission!(:edit_issues)
+    Role.find(2).add_permission!(:edit_own_issues)
+    @request.session[:user_id] = 3
+    get :edit_multiple, :params => {:project_id => 'ecookbook', :ids => [1, 2]}
+    assert_response :success
+    assert_select 'tr#issue-1'
+    assert_select 'tr#issue-1 input, tr#issue-1 select, tr#issue-1 textarea', 0
+  end
+
+  def test_edit_multiple_should_show_issues_of_a_project_without_the_permission_as_text
+    # issue 5 is in subproject1, where jsmith has no role and so no inline edit permission
+    @request.session[:user_id] = 2
+    get :edit_multiple, :params => {:project_id => 'ecookbook', :ids => [1, 5]}
+    assert_response :success
+    assert_select 'input[name=?]', 'issues[1][subject]'
+    assert_select 'tr#issue-5'
+    assert_select 'tr#issue-5 input, tr#issue-5 select, tr#issue-5 textarea', 0
+  end
+
   def test_update_multiple_with_permission
     @request.session[:user_id] = 2
     put :update_multiple, :params => {:project_id => 'ecookbook',
