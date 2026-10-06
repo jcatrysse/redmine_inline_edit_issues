@@ -42,6 +42,8 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
   `group` class; on Redmine 6+ "Collapse all/Expand all" threw
   `Cannot read properties of undefined (reading 'getElementsByTagName')` on them (seen in the
   browser on 7.0 before the fix).
+- Dead Deface override removed with `deface` from PluginGemfile and the `app/overrides` path
+  (work list 5; choice recorded under "Open questions for Jan").
 
 ## Baseline (2026-10-06, before any change, branch head `f60940a`)
 
