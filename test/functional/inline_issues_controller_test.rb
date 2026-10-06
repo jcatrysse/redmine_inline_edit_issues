@@ -111,6 +111,20 @@ class InlineIssuesControllerTest < Redmine::ControllerTest
     assert_select 'tr.group.inline_group_totals', 0
   end
 
+  def test_edit_multiple_should_not_show_an_issue_the_user_cannot_see
+    grant_inline_edit(1, 2)
+    @request.session[:user_id] = 3 # dlopper: member of project 1 only
+    get :edit_multiple, :params => {:project_id => 'ecookbook', :ids => [1, 4], :set_filter => '1', :c => ['subject']}
+    assert_response :success
+    assert_select 'tr#issue-1'
+    assert_select 'tr#issue-4', 0
+    assert_not_include 'Issue on project 2', response.body
+
+    get :edit_multiple, :params => {:ids => [1, 4], :set_filter => '1', :c => ['subject']}
+    assert_response 403
+    assert_not_include 'Issue on project 2', response.body
+  end
+
   def test_update_multiple_with_permission
     @request.session[:user_id] = 2
     put :update_multiple, :params => {:project_id => 'ecookbook',
@@ -270,6 +284,15 @@ class InlineIssuesControllerTest < Redmine::ControllerTest
     put :update_multiple, :params => {:project_id => 'ecookbook',
                                       :issues => {'1' => {:subject => 'Changed inline'},
                                                   '999' => {:subject => 'Nothing'}}}
+    assert_response 404
+    assert_equal 'Cannot print recipes', Issue.find(1).subject
+  end
+
+  def test_update_multiple_with_an_issue_id_that_is_not_a_number_should_respond_with_404
+    @request.session[:user_id] = 2
+    put :update_multiple, :params => {:project_id => 'ecookbook',
+                                      :issues => {'1' => {:subject => 'Changed inline'},
+                                                  'abc' => {:subject => 'Nothing'}}}
     assert_response 404
     assert_equal 'Cannot print recipes', Issue.find(1).subject
   end
