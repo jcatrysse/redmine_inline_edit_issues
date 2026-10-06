@@ -28,3 +28,5 @@ _ReSharper*/
 packages/
 .idea/*
 *.ps1
+# Redmine checkout made by .codex/redmine_clone.sh
+/redmine/
