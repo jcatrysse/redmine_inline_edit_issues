@@ -25,6 +25,14 @@ class InlineIssuesControllerTest < Redmine::ControllerTest
     end
   end
 
+  def test_edit_multiple_buttons_should_be_translated
+    User.find(2).update_attribute(:language, 'nl')
+    @request.session[:user_id] = 2
+    get :edit_multiple, :params => {:project_id => 'ecookbook', :ids => [1, 2]}
+    assert_response :success
+    assert_select 'input#inline_edit_reset[type=reset][value=?]', ::I18n.t(:button_reset, :locale => :nl)
+  end
+
   def test_edit_multiple_without_permission_should_be_refused
     @request.session[:user_id] = 3
     get :edit_multiple, :params => {:project_id => 'ecookbook', :ids => [1, 2]}

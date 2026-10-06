@@ -47,6 +47,6 @@
     </table>
   </div>
   <%= submit_tag l(:button_submit) %>
-  <input name="resetform" type="reset" id="inline_edit_reset" value="Reset"/>
+  <input name="resetform" type="reset" id="inline_edit_reset" value="<%= l(:button_reset) %>"/>
   <%= link_to l(:button_cancel), @back_url %>
 <% end %>
