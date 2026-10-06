@@ -27,7 +27,19 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
 
 ## Already on this branch
 
-- nothing: the branch equals the branch GEOxyz runs today.
+- Repaired functional tests (commit "Repair the functional tests").
+
+## Baseline (2026-10-06, before any change, branch head `f60940a`)
+
+| run | Redmine 7.0.1 (7.0-stable-GEOxyz @ 8067e23), Rails 8.1.3.1, Ruby 3.3.6 |
+|---|---|
+| minitest, PostgreSQL 16.15 | 5 runs, 2 assertions, 1 failures, 3 errors (pre-existing: old `get :x, :ids =>` syntax, 403 from missing permission setup, `assert_response 999`) |
+| e2e smoke (production mode) | 10 plugin GET routes, 20 screenshots, 0 problems |
+| e2e core flows | 6 screenshots, 0 problems |
+
+Kit notes: `redmine_clone.sh` needs `rsync` (installed with apt); `test_setup.sh` with
+`RMP_PROVISION_DB=1` as root calls `$SUDO -u postgres` with an empty `$SUDO` and fails, so the role
+was created by hand and the script run with `RMP_PROVISION_DB=0`.
 
 ## Work list for the migration session
 
