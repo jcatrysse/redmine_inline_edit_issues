@@ -18,14 +18,18 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
 | Plugin id | `redmine_inline_edit_issues` |
 | GEOxyz runs today | `master` |
 | Upstream | omegacodepl/redmine_inline_edit_issues master @ 2cf2f6c (2021-03-01) |
-| Runs on Redmine 7 as is | JA |
+| Runs on Redmine 7 as is | JA (functioneel), met het beveiligingslek; na deze branch: lek dicht, alles groen |
 | Upstream sync | UPSTREAM DOOD |
 | After sync | n.v.t. |
 | Complexity (1 trivial .. 5 rewrite) | 2 |
 | Measured on | Redmine 7.0.1 (7.0-stable-GEOxyz + latest 7.0-stable), Rails 8.1.3.1, Ruby 3.3.6, PostgreSQL 16 and MariaDB 10.11 |
 | Branch head when this file was written | `4ddf35e` |
+| Migration state (2026-10-06) | DONE: work list 1-9 done, all GEOxyz changes kept and verified; open questions for Jan below |
+| Plugin version | 0.0.3 (was 0.0.2) |
 
 ## Already on this branch
+
+(Short history; the verdicts are in the work list and the GEOxyz table, numbers under "Results".)
 
 - Repaired functional tests (commit "Repair the functional tests").
 - Security fix of `update_multiple` (work list 1/3): issues must exist and be visible, the
@@ -72,7 +76,7 @@ API endpoints, rake tasks or cron. Scenarios in `test/e2e/`, evidence in `docs/e
 |---|---|---|---|
 | "Edit Inline" in the context menu (2+ issues), keeps the list's columns and sort | issue list, select issues, right click | context_menu.mjs | context-menu-manager, -opens-form, -single-issue, -developer-disabled, -reporter-disabled |
 | Inline edit form, project and cross-project URL, read-only values as text, custom fields (user, list, key/value, workflow read-only), sorting by a column | the menu item | edit_form.mjs | edit-form-manager, -sorted, -without-project, -developer-refused, -reporter-refused, -outsider-private-refused, -anonymous-login |
-| Save: notice, history, validation error, forged requests refused or ignored (private issue, no permission, unknown id, author_id/closed_on) | Submit on the form | save.mjs | save-changed, -saved, -history, -validation-error, -unsafe-ignored, -outsider-private-refused, -reporter-refused, -developer-refused, -unknown-issue |
+| Save: notice, history, validation error, forged requests refused or ignored (private issue by a user with the permission elsewhere, by a non-member; no permission; unknown id; author_id/closed_on) | Submit on the form | save.mjs | save-changed, -saved, -history, -validation-error, -unsafe-ignored, -outsider-private-refused, -editor-private-refused, -reporter-refused, -developer-refused, -unknown-issue |
 | Client side: edited fields red, original value on hover, live estimated time total, Reset, Cancel | the form | client_side.mjs | client-side-edited-hover, -total, -reset, -cancel |
 | Grouping: group headers with expander, fold one, collapse/expand all, totals per group | group_by in the list options, then the menu item | grouping.mjs | grouping-grouped, -one-folded, -collapsed, -expanded |
 | Permission "Edit inline" in roles | Administration, Roles and permissions | permission.mjs | permission-report, -manager-refused |
@@ -104,48 +108,131 @@ https://github.com/jcatrysse/custom_field_sql.git@redmine70-migration"`:
   display, not this one's.
 
 E2E data: `test/e2e/seed.rb` adds a `developer` user (core Developer: may edit issues, no inline
-edit permission), custom fields (user, list, key/value, a text field read-only by workflow for "E2E
+edit permission), an `editor` (every permission in e2e-project only, cannot see e2e-private), custom fields (user, list, key/value, a text field read-only by workflow for "E2E
 full"), core Manager's workflow for "E2E full", and estimated times.
 
 ## Work list for the migration session
 
 In this order: things that break, security, the GEOxyz changes, the open items, then the checks.
 
+Verdicts in **bold** after each item.
+
 **Priority items**
 
 1. SECURITY (fix in this migration): update_multiple updates any issue id from params with `to_unsafe_hash`. Load the issues through Issue.visible and the authorized ids, check `editable?` per issue, assign through `safe_attributes=` with `init_journal`, so workflow field permissions and redmine_editauthor's author permission apply.
+   **Done** (16ef907, 4f09701, b754738, 3b0a987): visible issues only (403), unknown/non-numeric ids
+   404, the permission on the projects of the submitted issues, `attributes_editable?` for all,
+   `init_journal` + `safe_attributes=`. The form shows what the user may not change as text.
+   Demonstrated before/after in the browser (docs/e2e/before/save.md vs docs/e2e/save.md).
 2. Repair the 5 functional tests so they prove something (syntax, setup, the `assert_response 999`).
+   **Done** (46ede5e), and grown to 35 tests (functional + integration).
 
 **Open items from the analysis** (Dutch; where they conflict with a decision or a priority item above, those win)
 
 3. SECURITY (pre-existing, upstream since v1.0.0): update_multiple updates any issue id in params with to_unsafe_hash, no visibility/safe_attributes/workflow check; demonstrated: a non-member changed subject and author_id of an issue in a private project. Fix with Issue.visible + editable? + safe_attributes=
+   **Done**, same as 1.
 4. Repair the 5 functional tests (old request syntax, permission setup, assert_response 999)
+   **Done**, same as 2.
 5. Deface override in config/initializers is never loaded (5.1 and 7.0): load from init.rb or drop deface from PluginGemfile
+   **Done: dropped** (7dc3aae); confirmed `Deface::Override.all` was empty. Open question 1.
 6. Cosmetic: no SVG icons on context menu item, group expander, option links
+   **Done** for the context menu item (52aee5a) and the expander (afcb8c0); the option links are in
+   `_options_form.html.erb`, which no view renders (dead code, left as is). The expander work found
+   a real Redmine 6+ break: "Collapse all/Expand all" threw a JS error (fixed in afcb8c0), and the
+   group badge rendered clipped (fixed in f7e8691).
 
 **Checks**
 
 7. Run the plugin's whole test suite on Redmine 7.0-stable-GEOxyz with PostgreSQL AND MariaDB, and once on 5.1-stable if the branch is meant to stay 5.1-compatible.
+   **Done**, see "Results". 5.1 found a Rails 6.1 incompatibility of the fix itself (3b0a987).
 8. Check Redmine 7 webhooks against this plugin (see "Rules"), and note the result here even if nothing is needed.
+   **Done** (3a25d79): no plugin data in issues, nothing to change; an inline save now sends
+   `issue.updated` with the journal (before: without).
 9. Verify every feature of the plugin by hand on a running Redmine 7 (screenshots).
+   **Done**: inventory above, docs/e2e (PostgreSQL), docs/e2e/mariadb, docs/e2e/together,
+   docs/e2e/before (5.1, master). Found and fixed on the way: empty status select without workflow
+   transitions (173f207), ITIL priority unlinked by an unchanged priority (b754738), Reset button
+   not translated (0eac06b).
 
 ## GEOxyz changes to review or re-apply
 
 These GEOxyz commits are on the branch GEOxyz runs today and therefore on this branch. Review each one against the code it now sits on (upstream merges and Redmine 7 core): drop it if upstream or core now does the same, rewrite it if it is not up to the quality rules below (tests, I18n, security, portability), keep it otherwise. Record the verdict per commit in this file.
 
-| commit | date | subject |
-|---|---|---|
-| `a0865eb` | 2025-08-31 | Support for the Redmine ITIL Priority plugin |
-| `b365a80` | 2025-06-29 | Feature: add depending list and keyed list #6103 |
-| `72342eb` | 2025-06-19 | Defect: inline edit does not handle user or extended_user custom fields well |
-| `46d01a2` | 2025-06-18 | Defect: inline edit sorting fails when on navigation #6103 |
-| `fecb853` | 2025-04-26 | * Resolve compatibility issues * Partially resolve some issues * Still to be further tested, as some issues remain. |
+| commit | date | subject | verdict |
+|---|---|---|---|
+| `a0865eb` | 2025-08-31 | Support for the Redmine ITIL Priority plugin | **Keep.** Impact/urgency selects work with ITIL's redmine70-migration branch; ITIL declares them safe attributes. The switch to `safe_attributes=` needed b754738 (an unchanged priority is no longer sent, or ITIL unlinks it). Browser: docs/e2e/together. |
+| `b365a80` | 2025-06-29 | Feature: add depending list and keyed list #6103 | **Keep.** The generic `format.edit_tag` path serves list, key/value, depending list and sql_search fields; depending list filtered by its parent and saved with redmine_depending_custom_fields (docs/e2e/together); key/value list in docs/e2e/edit-form-manager. |
+| `72342eb` | 2025-06-19 | Defect: inline edit does not handle user or extended_user custom fields well | **Keep** (its code was superseded by b365a80's generic edit tag): user field and extended user field (with show_active) offer the same users as the issue form and save (docs/e2e/together). |
+| `46d01a2` | 2025-06-18 | Defect: inline edit sorting fails when on navigation #6103 | **Keep.** Sorting by a column header stays on the form (docs/e2e/edit-form-sorted); the context menu passes the list's columns and sort (context_menu.mjs, integration test). |
+| `fecb853` | 2025-04-26 | * Resolve compatibility issues * Partially resolve some issues * Still to be further tested, as some issues remain. | **Rewritten in part.** Its `update_multiple` (Issue.where + `update(to_unsafe_hash)`) was the security hole and is replaced (16ef907); the derived-parent filtering, back_url handling, hook file and init.rb stay; its Deface edit went with the dead override (7dc3aae); its `icon icon-expanded` expander got the SVG (afcb8c0). |
+
+## Results (final code, 2026-10-06)
+
+| run | result |
+|---|---|
+| tests, 7.0-stable-GEOxyz (7.0.1 @ 8067e23), PostgreSQL 16.15, Ruby 3.3.6 | 35 runs, 153 assertions, 0 failures, 0 errors, 0 skips |
+| tests, 7.0-stable-GEOxyz, MariaDB 10.11.14 | 35 runs, 153 assertions, 0 failures, 0 errors, 0 skips |
+| tests, 7.0-stable (official, 7.0.2), PostgreSQL | 35 runs, 153 assertions, 0 failures |
+| tests, 7.0-stable-GEOxyz + ITIL Priority + Depending CF + custom_field_sql (redmine70-migration), PostgreSQL | 35 runs, 153 assertions, 0 failures |
+| tests, 5.1-stable (5.1.13), PostgreSQL, Ruby 3.2.6 | 34 runs, 123 assertions, 0 failures (the webhook test exists on 7 only) |
+| tests without the fixes | the security tests fail on the old controller (9 failures, 2 errors at 16ef907; every later fix has its failing test quoted in its commit) |
+| boot, production eager load | OK (start_server.sh, production mode, both databases); Deface gone from the bundle |
+| migrations | the plugin has none; `redmine:plugins:migrate NAME=redmine_inline_edit_issues VERSION=0` and back: exit 0 (MariaDB) |
+| e2e PostgreSQL (docs/e2e) | smoke 20, core 6, 6 scenarios 32: 58 screenshots, 0 problems |
+| e2e MariaDB (docs/e2e/mariadb) | 58 screenshots, 0 problems |
+| e2e together (docs/e2e/together) | 4 screenshots, 0 problems |
+| e2e before, master on 5.1 (docs/e2e/before) | the old behaviour, problems listed per scenario (README there) |
+| own review | done; one point was a core issue (below), nothing in the plugin |
+| OpenAI review (gpt-5) | run 1: 2 findings, run 2: 2 findings, all four answered with tests that pass (not defects); run 3: no findings. docs/reviews/ |
+
+## Open questions for Jan
+
+1. **Deface link "Accept and edit"** in the issue query form (config/initializers, never loaded).
+   Options: (a) drop it and the deface gem, (b) load it from init.rb and port it to Redmine 7.
+   **Built: (a)**, users never saw it. Recommendation: (a); if the button is wanted, a view hook
+   is better than Deface.
+2. **Journals and notification mails for inline saves** (new, a consequence of the security fix).
+   Options: (a) like any issue update (history, mails, webhook), (b) history without mails.
+   **Built: (a)**, core-consistent and what the plan asked (`init_journal`). Recommendation: (a).
+3. **Dutch translation**: the plugin ships en and es only, so Dutch users see "Edit Inline",
+   "Inline edit", "Edit inline" in English. The rules forbid new languages without you.
+   Recommendation: add `nl.yml` (5 keys) in a follow-up.
+4. **Version** bumped to 0.0.3 with a NEWS entry; say if GEOxyz numbers these differently.
+
+## Left as is (written down, not fixed in passing)
+
+- Core (Redmine 7, not this plugin): `POST /issues/context_menu` with `back_url[]=...` answers 500
+  (`undefined method 'start_with?' for an instance of Array`), also with this plugin's partial
+  removed.
+- `app/views/inline_issues/_options_form.html.erb` is rendered nowhere (dead view, icon links).
+- `test/fixtures/*.yml` are stale copies of core fixtures (Rails 4 `to_s(:db)`), not loaded by the
+  tests (they use core's fixtures).
+- `resources :inline_issues` adds REST routes without actions (404 in the smoke run); harmless.
+- The form's JS tooltip shows a hard-coded "--BLANK--" for an empty original value.
+- Narrow select columns cut values ("Suppo" for Support); pre-existing layout.
+- Kit (.codex, not plugin code): `redmine_clone.sh` needs `rsync` (not installed here);
+  `test_setup.sh` with provisioning as root runs `$SUDO -u postgres ...` with an empty `$SUDO`;
+  switching RMP_DB needs `bundle install` again (Redmine picks the DB gem from database.yml).
+- Not testable here: nothing that needs real credentials is involved (no LDAP/OAuth/mail-in).
+- The manual GitHub workflow was not run (the same scripts ran locally, see above).
 
 ## After the upgrade (production)
 
 Actions the person doing the upgrade must take, or know about, for this plugin:
 
-- None known. Add here what the session finds.
+- **Deface**: this plugin no longer puts `deface` in the bundle. Before `bundle install`, check
+  `grep -rl "Deface::Override" plugins/*/` on production: a plugin that uses Deface must declare it
+  in its own Gemfile/PluginGemfile, or it fails to boot without it.
+- **Permissions get stricter** (the security fix): saving needs "Edit inline" in the project of
+  every submitted issue (subprojects included) plus the right to edit those issues ("Edit issues",
+  or "Edit own issues" for own issues), and follows the workflow's read-only fields. Users who
+  edited issues inline in a subproject without the permission there now see those rows as text.
+  Check the roles if someone reports this.
+- **History and mail**: every inline change now creates a journal entry and the usual issue
+  notification mails (one per changed issue), and fires the `issue.updated` webhook with the
+  journal. Before, inline changes left no trace. Tell the users.
+- No migrations, no settings, no cron; restart Redmine after deploying (Propshaft serves the
+  plugin assets from `assets/`).
 
 ## How to test
 
