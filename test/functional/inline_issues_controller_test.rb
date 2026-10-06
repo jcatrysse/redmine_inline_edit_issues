@@ -119,7 +119,13 @@ class InlineIssuesControllerTest < Redmine::ControllerTest
     assert_select 'tr#issue-1'
     assert_select 'tr#issue-4', 0
     assert_not_include 'Issue on project 2', response.body
+  end
 
+  # A test of its own: Rails 6.1 (Redmine 5.1) keeps the controller's instance variables between
+  # two requests of one functional test, so @project of a first request would authorize this one
+  def test_edit_multiple_without_project_should_refuse_an_issue_the_user_cannot_see
+    grant_inline_edit(1, 2)
+    @request.session[:user_id] = 3 # dlopper: member of project 1 only
     get :edit_multiple, :params => {:ids => [1, 4], :set_filter => '1', :c => ['subject']}
     assert_response 403
     assert_not_include 'Issue on project 2', response.body
