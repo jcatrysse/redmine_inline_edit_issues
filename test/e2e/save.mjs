@@ -62,7 +62,8 @@ if (!new URL(t.page.url()).pathname.endsWith(`/projects/${P}/issues`)) t.problem
 if (!(await t.page.locator('#flash_notice', { hasText: 'Successful update.' }).count())) t.problems.push('no success notice');
 await t.shot('saved', 'Back on the issue list with "Successful update."');
 await t.go(`/issues/${related}`);
-const journal = t.page.locator('#history .journal', { hasText: `E2E list changed from` }).last();
+// "set to" on the first value, "changed from ... to" afterwards
+const journal = t.page.locator('#history .journal', { hasText: 'E2E list' }).last();
 if (!(await journal.count()) || !(await journal.innerText()).includes(after)) t.problems.push('the change is not in the history');
 await t.shot('history', 'The inline change is recorded in the issue history, by the manager');
 

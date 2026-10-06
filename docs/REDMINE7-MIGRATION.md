@@ -79,6 +79,8 @@ API endpoints, rake tasks or cron. Scenarios in `test/e2e/`, evidence in `docs/e
 | Webhook `issue.updated` after an inline save (no page) | Redmine 7 webhooks | functional test `test_update_multiple_should_send_the_issue_updated_webhook_with_the_journal` | n.a. |
 | Plugin pages smoke, core issue flows with the plugin | | .codex/e2e smoke.mjs, core.mjs | smoke-01..20, core-* |
 
+The same set on MariaDB 10.11 is in `docs/e2e/mariadb/`.
+
 E2E data: `test/e2e/seed.rb` adds a `developer` user (core Developer: may edit issues, no inline
 edit permission), custom fields (user, list, key/value, a text field read-only by workflow for "E2E
 full"), core Manager's workflow for "E2E full", and estimated times.
