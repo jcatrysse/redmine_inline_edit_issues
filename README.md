@@ -34,7 +34,13 @@ This is a redmine plugin that allows you to edit fields of multiple issues in on
 * As you edit the estimated time field, the group totals and grand totals will automatically update.
   NOTE: Spent time is not an editable field on this screen.
 
+### Permissions and history
+* The "Edit inline" permission (module Issue tracking) opens the form; saving also needs the right to
+  edit the issues, and follows the workflow's read-only fields like the issue form.
+* Every inline change is recorded in the issue history and notified like any other issue update.
+
 ### Compatibility
+Redmine 5.1 to 7.0.
 This plugin works with the [Redmine Depending Custom Fields plugin](https://github.com/jcatrysse/redmine_depending_custom_fields).
 Dependent custom fields are fully supported on the inline edit screen when both plugins are installed.
 The [Custom Field SQL plugin](https://github.com/jcatrysse/custom_field_sql) is also compatible so `sql_search` fields function correctly.

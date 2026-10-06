@@ -8,3 +8,13 @@
 
 15-11-2020 2.0.0
 [Feature] Plugin is now compatible with redmine 3.4 and 4.1
+
+06-10-2026 0.0.3 (GEOxyz, Redmine 7)
+[Security] Saving the inline edit form only changes issues the user may see and edit, with the
+inline edit permission in their own projects, through the issue's safe attributes and workflow
+[Feature] Inline changes are recorded in the issue history and notified like any issue update
+[Fix] Fields the user may not change are shown as text; status without workflow transition as text
+[Fix] Redmine 6/7: SVG icons, "Collapse all/Expand all" without a JavaScript error, group badge
+[Fix] Context menu item disabled without the permission; no 500 on a back_url that cannot be parsed
+[Fix] An unchanged priority is not assigned (ITIL priority stays linked to impact and urgency)
+[Removed] The Deface override that Redmine never loaded, and the deface gem
