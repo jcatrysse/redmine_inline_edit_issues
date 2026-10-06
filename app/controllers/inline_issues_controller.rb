@@ -3,7 +3,8 @@ class InlineIssuesController < ApplicationController
   before_action :find_project, :only => [:edit_multiple]
   before_action :retrieve_query, :get_ids_before_edit, :only => [:edit_multiple]
   before_action :find_projects, :only => [:edit_multiple]
-  # The issues come from the submitted form, so the permission is checked on their own projects
+  # The issues come from the submitted form, so the permission is checked on their own projects:
+  # @project when they share one, else @projects, where authorize requires it in every project
   before_action :find_issues_to_update, :only => [:update_multiple]
   # Declared once: a second `before_action :authorize` would replace this one and its :only list
   before_action :authorize, :only => [:edit_multiple, :update_multiple]
