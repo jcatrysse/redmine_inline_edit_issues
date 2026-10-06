@@ -1,6 +1,6 @@
 # smoke
 
-Run 2026-10-06T20:21:51.920Z against http://127.0.0.1:3000.
+Run 2026-10-06T21:11:32.258Z against http://127.0.0.1:3000.
 
 | screenshot | user | URL | shows |
 |---|---|---|---|
@@ -15,12 +15,4 @@ Run 2026-10-06T20:21:51.920Z against http://127.0.0.1:3000.
 | ![](smoke-09.png) | admin | `/admin` | /admin (HTTP 200) |
 | ![](smoke-10.png) | admin | `/admin/plugins` | /admin/plugins (HTTP 200) |
 | ![](smoke-11.png) | admin | `/projects/e2e-project/inline_issues/edit_multiple` | /projects/e2e-project/inline_issues/edit_multiple (HTTP 200) |
-| ![](smoke-12.png) | admin | `/projects/e2e-project/inline_issues` | /projects/e2e-project/inline_issues (HTTP 404) |
-| ![](smoke-13.png) | admin | `/projects/e2e-project/inline_issues/new` | /projects/e2e-project/inline_issues/new (HTTP 404) |
-| ![](smoke-14.png) | admin | `/projects/e2e-project/inline_issues/1/edit` | /projects/e2e-project/inline_issues/1/edit (HTTP 404) |
-| ![](smoke-15.png) | admin | `/projects/e2e-project/inline_issues/1` | /projects/e2e-project/inline_issues/1 (HTTP 404) |
-| ![](smoke-16.png) | admin | `/inline_issues/edit_multiple` | /inline_issues/edit_multiple (HTTP 200) |
-| ![](smoke-17.png) | admin | `/inline_issues` | /inline_issues (HTTP 404) |
-| ![](smoke-18.png) | admin | `/inline_issues/new` | /inline_issues/new (HTTP 404) |
-| ![](smoke-19.png) | admin | `/inline_issues/1/edit` | /inline_issues/1/edit (HTTP 404) |
-| ![](smoke-20.png) | admin | `/inline_issues/1` | /inline_issues/1 (HTTP 404) |
+| ![](smoke-12.png) | admin | `/inline_issues/edit_multiple` | /inline_issues/edit_multiple (HTTP 200) |

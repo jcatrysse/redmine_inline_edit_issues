@@ -24,7 +24,7 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
 | Complexity (1 trivial .. 5 rewrite) | 2 |
 | Measured on | Redmine 7.0.1 (7.0-stable-GEOxyz + latest 7.0-stable), Rails 8.1.3.1, Ruby 3.3.6, PostgreSQL 16 and MariaDB 10.11 |
 | Branch head when this file was written | `4ddf35e` |
-| Migration state (2026-10-06) | DONE: work list 1-9 done, all GEOxyz changes kept and verified; open questions for Jan below |
+| Migration state (2026-10-06) | DONE: work list 1-9 done, all GEOxyz changes kept and verified, open questions resolved; left: one core fix and the GitHub workflow after the merge |
 | Plugin version | 0.0.3 (was 0.0.2) |
 
 ## Already on this branch
@@ -79,6 +79,7 @@ API endpoints, rake tasks or cron. Scenarios in `test/e2e/`, evidence in `docs/e
 | Save: notice, history, validation error, forged requests refused or ignored (private issue by a user with the permission elsewhere, by a non-member; no permission; unknown id; author_id/closed_on) | Submit on the form | save.mjs | save-changed, -saved, -history, -validation-error, -unsafe-ignored, -outsider-private-refused, -editor-private-refused, -reporter-refused, -developer-refused, -unknown-issue |
 | Client side: edited fields red, original value on hover, live estimated time total, Reset, Cancel | the form | client_side.mjs | client-side-edited-hover, -total, -reset, -cancel |
 | Grouping: group headers with expander, fold one, collapse/expand all, totals per group | group_by in the list options, then the menu item | grouping.mjs | grouping-grouped, -one-folded, -collapsed, -expanded |
+| Tooltip with the original value: shown as text (no markup runs), "none" for an empty value | hover a field on the form | tooltip.mjs | tooltip-markup-as-text, tooltip-empty-value |
 | Permission "Edit inline" in roles | Administration, Roles and permissions | permission.mjs | permission-report, -manager-refused |
 | Webhook `issue.updated` after an inline save (no page) | Redmine 7 webhooks | functional test `test_update_multiple_should_send_the_issue_updated_webhook_with_the_journal` | n.a. |
 | Plugin pages smoke, core issue flows with the plugin | | .codex/e2e smoke.mjs, core.mjs | smoke-01..20, core-* |
@@ -166,55 +167,66 @@ These GEOxyz commits are on the branch GEOxyz runs today and therefore on this b
 | `46d01a2` | 2025-06-18 | Defect: inline edit sorting fails when on navigation #6103 | **Keep.** Sorting by a column header stays on the form (docs/e2e/edit-form-sorted); the context menu passes the list's columns and sort (context_menu.mjs, integration test). |
 | `fecb853` | 2025-04-26 | * Resolve compatibility issues * Partially resolve some issues * Still to be further tested, as some issues remain. | **Rewritten in part.** Its `update_multiple` (Issue.where + `update(to_unsafe_hash)`) was the security hole and is replaced (16ef907); the derived-parent filtering, back_url handling, hook file and init.rb stay; its Deface edit went with the dead override (7dc3aae); its `icon icon-expanded` expander got the SVG (afcb8c0). |
 
-## Results (final code, 2026-10-06)
+## Results (final code, 2026-10-06, after the open items)
 
 | run | result |
 |---|---|
-| tests, 7.0-stable-GEOxyz (7.0.1 @ 8067e23), PostgreSQL 16.15, Ruby 3.3.6 | 35 runs, 153 assertions, 0 failures, 0 errors, 0 skips |
-| tests, 7.0-stable-GEOxyz, MariaDB 10.11.14 | 35 runs, 153 assertions, 0 failures, 0 errors, 0 skips |
-| tests, 7.0-stable (official, 7.0.2), PostgreSQL | 35 runs, 153 assertions, 0 failures |
-| tests, 7.0-stable-GEOxyz + ITIL Priority + Depending CF + custom_field_sql (redmine70-migration), PostgreSQL | 35 runs, 153 assertions, 0 failures |
-| tests, 5.1-stable (5.1.13), PostgreSQL, Ruby 3.2.6 | 34 runs, 123 assertions, 0 failures (the webhook test exists on 7 only) |
-| tests without the fixes | the security tests fail on the old controller (9 failures, 2 errors at 16ef907; every later fix has its failing test quoted in its commit) |
+| tests, 7.0-stable-GEOxyz (7.0.1 @ 8067e23), PostgreSQL 16.15, Ruby 3.3.6 | 42 runs, 194 assertions, 0 failures, 0 errors, 0 skips |
+| tests, 7.0-stable-GEOxyz, MariaDB 10.11.14 | 42 runs, 194 assertions, 0 failures, 0 errors, 0 skips |
+| tests, 7.0-stable (official, 7.0.2), PostgreSQL | 42 runs, 194 assertions, 0 failures |
+| tests, 7.0-stable-GEOxyz + ITIL Priority + Depending CF + custom_field_sql (redmine70-migration), PostgreSQL | 42 runs, 194 assertions, 0 failures |
+| tests, 5.1-stable (5.1.13), PostgreSQL, Ruby 3.2.6 | 41 runs, 160 assertions, 0 failures (the webhook test exists on 7 only) |
+| tests without the fixes | every fix has its failing test or failing browser check quoted in its commit |
 | boot, production eager load | OK (start_server.sh, production mode, both databases); Deface gone from the bundle |
-| migrations | the plugin has none; `redmine:plugins:migrate NAME=redmine_inline_edit_issues VERSION=0` and back: exit 0 (MariaDB) |
-| e2e PostgreSQL (docs/e2e) | smoke 20, core 6, 6 scenarios 32: 58 screenshots, 0 problems |
-| e2e MariaDB (docs/e2e/mariadb) | 58 screenshots, 0 problems |
+| migrations | the plugin has none; `redmine:plugins:migrate NAME=redmine_inline_edit_issues VERSION=0` and back: exit 0 |
+| e2e PostgreSQL (docs/e2e) | smoke 12 (2 plugin routes now), core 6, 7 scenarios 34: 52 screenshots, 0 problems |
+| e2e MariaDB (docs/e2e/mariadb) | 52 screenshots, 0 problems |
 | e2e together (docs/e2e/together) | 4 screenshots, 0 problems |
 | e2e before, master on 5.1 (docs/e2e/before) | the old behaviour, problems listed per scenario (README there) |
-| own review | done; one point was a core issue (below), nothing in the plugin |
-| OpenAI review (gpt-5) | run 1: 2 findings, run 2: 2 findings, all four answered with tests that pass (not defects); run 3: no findings. docs/reviews/ |
+| own review | done; one point was a core issue (below) |
+| OpenAI review (gpt-5), 6 rounds | 9 findings over the rounds, each checked: none held (tests or code that disprove them in docs/reviews/), round 3 empty. The stored XSS was found by our own review, not by this one. |
 
 ## Open questions for Jan
 
-1. **Deface link "Accept and edit"** in the issue query form (config/initializers, never loaded).
-   Options: (a) drop it and the deface gem, (b) load it from init.rb and port it to Redmine 7.
-   **Built: (a)**, users never saw it. Recommendation: (a); if the button is wanted, a view hook
-   is better than Deface.
-2. **Journals and notification mails for inline saves** (new, a consequence of the security fix).
-   Options: (a) like any issue update (history, mails, webhook), (b) history without mails.
-   **Built: (a)**, core-consistent and what the plan asked (`init_journal`). Recommendation: (a).
-3. **Dutch translation**: the plugin ships en and es only, so Dutch users see "Edit Inline",
-   "Inline edit", "Edit inline" in English. The rules forbid new languages without you.
-   Recommendation: add `nl.yml` (5 keys) in a follow-up.
-4. **Version** bumped to 0.0.3 with a NEWS entry; say if GEOxyz numbers these differently.
+Jan answered "los de openstaande zaken op" (2026-10-06): resolved after the recommendations.
 
-## Left as is (written down, not fixed in passing)
+1. **Deface link "Accept and edit"**: dropped with the deface gem (7dc3aae); the unused locale key
+   went too (14d9c40). If the button is ever wanted: a view hook, not Deface.
+2. **Journals and notification mails for inline saves**: kept like any issue update (history,
+   mails, webhook).
+3. **Dutch translation**: added, `config/locales/nl.yml` (14d9c40), with a test that keeps the
+   shipped locales on the same keys.
+4. **Version** 0.0.3 kept.
 
-- Core (Redmine 7, not this plugin): `POST /issues/context_menu` with `back_url[]=...` answers 500
-  (`undefined method 'start_with?' for an instance of Array`), also with this plugin's partial
-  removed.
-- `app/views/inline_issues/_options_form.html.erb` is rendered nowhere (dead view, icon links).
-- `test/fixtures/*.yml` are stale copies of core fixtures (Rails 4 `to_s(:db)`), not loaded by the
-  tests (they use core's fixtures).
-- `resources :inline_issues` adds REST routes without actions (404 in the smoke run); harmless.
-- The form's JS tooltip shows a hard-coded "--BLANK--" for an empty original value.
-- Narrow select columns cut values ("Suppo" for Support); pre-existing layout.
-- Kit (.codex, not plugin code): `redmine_clone.sh` needs `rsync` (not installed here);
-  `test_setup.sh` with provisioning as root runs `$SUDO -u postgres ...` with an empty `$SUDO`;
-  switching RMP_DB needs `bundle install` again (Redmine picks the DB gem from database.yml).
-- Not testable here: nothing that needs real credentials is involved (no LDAP/OAuth/mail-in).
-- The manual GitHub workflow was not run (the same scripts ran locally, see above).
+## Resolved after the first report (2026-10-06)
+
+- **Stored XSS in the form's tooltip** (found while fixing "--BLANK--"): the original value was
+  put into the page with `.html()`, so a subject with markup ran in the browser of whoever hovered
+  it (upstream code, on master too). Now `.text()`; an empty value shows core's `label_none`
+  (afe155f, test/e2e/tooltip.mjs: 5 problems on the old JS, 0 now).
+- Dead code removed: `_options_form.html.erb`, stale `test/fixtures` (67034c0).
+- Routes limited to the plugin's three actions, no second copy of core's project routes (d5b2696).
+- Selects and the subject no longer cut their value on the form; the table scrolls sideways
+  (fcd0850, measured in edit_form.mjs).
+- Kit: `redmine_clone.sh` works without rsync, `test_setup.sh` provisions PostgreSQL as root
+  (149ee11, both checked).
+- OpenAI review rounds 4 to 6: five more findings, all checked and rejected with a test or the
+  code that disproves them (docs/reviews/); none accepted.
+
+## Left as is
+
+- **Core (Redmine 7, jcatrysse/redmine 7.0-stable-GEOxyz)**: `POST /issues/context_menu` with
+  `back_url[]=...` answers 500 (`undefined method 'start_with?' for an instance of Array`), also
+  without this plugin. Cause: `ApplicationController#back_url` returns a non-String param; fix
+  there (`url = nil unless url.is_a?(String)`) with a test. Out of this repository's reach (this
+  session may push only this branch); a separate task for the core repository.
+- **The manual GitHub workflow cannot be started yet**: GitHub offers `workflow_dispatch` only
+  for workflows on the default branch, and `.github/workflows/redmine-tests.yml` exists only on
+  this branch (`list_workflows`: 0). It becomes runnable after the merge into master; the same
+  scripts ran locally (see "Results").
+- Switching RMP_DB in a checkout needs `bundle install` again (Redmine picks the database gem
+  from database.yml); `test_setup.sh` does that, a hand-edited database.yml does not.
+- Nothing that needs real credentials is involved (no LDAP/OAuth/mail-in).
 
 ## After the upgrade (production)
 
