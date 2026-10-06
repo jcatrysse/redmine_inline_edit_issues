@@ -1,6 +1,7 @@
 # Data for test/e2e_together/geoxyz_plugins.mjs: run after .codex/e2e/seed.rb and
 # test/e2e/seed.rb on a Redmine that also has redmine_itil_priority and
-# redmine_depending_custom_fields (see the plan, "Together"). Idempotent.
+# redmine_depending_custom_fields, and custom_field_sql when present (see the plan, "Together").
+# Idempotent.
 User.current = User.find_by(login: 'admin')
 project = Project.find_by!(identifier: 'e2e-project')
 project.enable_module!(:itil_priority) if Redmine::AccessControl.available_project_modules.include?(:itil_priority)
@@ -20,6 +21,13 @@ together_field('E2E city', field_format: 'depending_list', possible_values: %w[G
 xuser = together_field('E2E extended user', field_format: 'extended_user')
 xuser.format_store['show_active'] = '1'
 xuser.save!
+
+# custom_field_sql (redmine70-migration): a sql list and a sql_search field
+if Redmine::FieldFormat.available_formats.include?('sql_search')
+  together_field('E2E sql', field_format: 'sql', sql: 'select name, id from trackers order by position')
+  together_field('E2E sql search', field_format: 'sql_search',
+                                   sql: "select subject as value from issues where lower(subject) like lower('%%%{term}%%') order by subject")
+end
 
 puts "Together seed: itil_priority #{project.module_enabled?(:itil_priority) ? 'on' : 'off'}, " \
      "#{IssueCustomField.where(field_format: %w[depending_list extended_user]).count} depending/extended fields"

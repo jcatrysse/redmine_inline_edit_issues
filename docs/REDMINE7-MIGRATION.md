@@ -85,7 +85,8 @@ The same set on MariaDB 10.11 is in `docs/e2e/mariadb/`.
 
 Checkout `/home/user/rm-together` (7.0-stable-GEOxyz, PostgreSQL) with
 `RMP_EXTRA_PLUGINS="https://github.com/jcatrysse/redmine_itil_priority.git@redmine70-migration
-https://github.com/jcatrysse/redmine_depending_custom_fields.git@redmine70-migration"`:
+https://github.com/jcatrysse/redmine_depending_custom_fields.git@redmine70-migration
+https://github.com/jcatrysse/custom_field_sql.git@redmine70-migration"`:
 
 - plugin tests: 30 runs, 135 assertions, 0 failures (the ITIL and depending CF plugins loaded);
 - browser, `test/e2e_together/geoxyz_plugins.mjs` after `test/e2e_together/seed.rb`
@@ -96,8 +97,11 @@ https://github.com/jcatrysse/redmine_depending_custom_fields.git@redmine70-migra
 - Finding, fixed: with the Priority column on the form, an inline impact/urgency change unlinked
   the ITIL priority instead of recalculating it (the form sent the unchanged priority_id, which
   ITIL's `safe_attributes=` takes as a manual choice). An unchanged priority is no longer assigned.
-- The custom_field_sql plugin (`sql_search` fields) was not installed together: it is not a
-  jcatrysse repository in this session's reach; the helper code for it is unchanged.
+- custom_field_sql (redmine70-migration) added afterwards to the same checkout: an `sql` list
+  and an `sql_search` field work on the inline form (autocomplete answers "relat" with "E2E related
+  issue") and save; 4 screenshots in total, 0 problems, the scenario re-runs on the same data.
+  On the issue page custom_field_sql shows the stored id of an `sql` value ("3"): that plugin's
+  display, not this one's.
 
 E2E data: `test/e2e/seed.rb` adds a `developer` user (core Developer: may edit issues, no inline
 edit permission), custom fields (user, list, key/value, a text field read-only by workflow for "E2E
