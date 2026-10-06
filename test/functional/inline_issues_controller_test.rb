@@ -219,4 +219,33 @@ class InlineIssuesControllerTest < Redmine::ControllerTest
     assert_response 422
     assert_equal 'Cannot print recipes', Issue.find(1).subject
   end
+
+  if defined?(Webhook) # Redmine 7
+    include ActiveJob::TestHelper
+
+    def test_update_multiple_should_send_the_issue_updated_webhook_with_the_journal
+      adapter = ActiveJob::Base.queue_adapter
+      ActiveJob::Base.queue_adapter = :test
+      Role.find(1).add_permission!(:use_webhooks)
+      hook = Webhook.new(:url => 'https://example.com/hook', :user => User.find(2),
+                         :projects => [Project.find(1)], :events => ['issue.updated'], :active => true)
+      hook.save!(:validate => false)
+      @request.session[:user_id] = 2
+      with_settings :webhooks_enabled => '1' do
+        assert_enqueued_jobs 1, :only => WebhookJob do
+          put :update_multiple, :params => {:project_id => 'ecookbook',
+                                            :issues => {'1' => {:subject => 'Changed inline'}}}
+        end
+      end
+      hook_id, json = enqueued_jobs.detect { |job| job[:job] == WebhookJob }[:args]
+      payload = ActiveSupport::JSON.decode(json)
+      assert_equal hook.id, hook_id
+      assert_equal 'issue.updated', payload['type']
+      assert_equal 'Changed inline', payload.dig('data', 'issue', 'subject')
+      assert_equal [['subject', 'Cannot print recipes', 'Changed inline']],
+                   payload.dig('data', 'journal', 'details').map { |d| d.values_at('prop_key', 'old_value', 'value') }
+    ensure
+      ActiveJob::Base.queue_adapter = adapter
+    end
+  end
 end

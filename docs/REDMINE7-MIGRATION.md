@@ -44,6 +44,10 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
   browser on 7.0 before the fix).
 - Dead Deface override removed with `deface` from PluginGemfile and the `app/overrides` path
   (work list 5; choice recorded under "Open questions for Jan").
+- Webhooks (work list 8): the plugin adds or hides no issue data, so the core payload stays
+  right. An inline save fires `issue.updated` like any update; before the security fix it had no
+  journal, so the payload said nothing about what changed. Now the journal and its details are
+  in it (functional test, fails on the old controller with `undefined method 'map' for nil`).
 
 ## Baseline (2026-10-06, before any change, branch head `f60940a`)
 
