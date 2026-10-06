@@ -1,0 +1,6 @@
+# Dutch strings go here for Rails i18n
+nl:
+  button_inline_edit: Inline bewerken
+  label_inline_edit_selected_issues: Inline bewerken
+  permission_issues_inline_edit: Issues inline bewerken
+  label_no_issues_selected: Geen issues geselecteerd
