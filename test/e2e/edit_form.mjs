@@ -43,6 +43,21 @@ for (const [i, kind] of [[0, 'select'], [1, 'select'], [2, 'select']]) {
   const id = cfCols[i].replace('cf_', '');
   if (!(await t.page.locator(`${kind}[name="issues[${others[0]}][custom_field_values][${id}]"]`).count())) t.problems.push(`custom field ${cfCols[i]} has no ${kind}`);
 }
+// every select must show its whole selected value (they were cut, "Suppo" for Support)
+const cut = await t.page.$$eval('#inline_edit_form td select', ss => {
+  const ctx = document.createElement('canvas').getContext('2d');
+  return ss.filter(s => s.selectedIndex >= 0 && s.options[s.selectedIndex].text.trim()).map(s => {
+    const cs = getComputedStyle(s);
+    ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const text = s.options[s.selectedIndex].text;
+    const room = s.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    return ctx.measureText(text).width > room ? `${s.name}: "${text}"` : null;
+  }).filter(Boolean);
+});
+if (cut.length) t.problems.push(`selects cut their value: ${cut.join(', ')}`);
+// and the subject keeps room for a readable part of its text
+const narrow = await t.page.$$eval('#inline_edit_form td.subject input', is => is.filter(i => i.clientWidth < 150).map(i => `${i.name}: ${i.clientWidth}px`));
+if (narrow.length) t.problems.push(`subject inputs too narrow: ${narrow.join(', ')}`);
 await t.shot('manager', 'Manager: every editable field is an input; the parent\'s derived dates and % done and the workflow read-only custom field "E2E read-only" are text');
 
 // sorting by a column header stays on the inline edit form (GEOxyz fix 46d01a2)

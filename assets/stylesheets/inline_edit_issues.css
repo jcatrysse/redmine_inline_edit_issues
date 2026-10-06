@@ -38,6 +38,16 @@ td input, td span.select2, td select {
     width: 100% !important;
 }
 
+/* a select is never narrower than its longest option, so the value is not cut; the table
+   scrolls sideways instead (div.autoscroll) */
+#inline_edit_form td select {
+    min-width: max-content;
+}
+
+#inline_edit_form td.subject input {
+    min-width: 15em;
+}
+
 table tbody td span.expander {
     text-align: left;
 }
