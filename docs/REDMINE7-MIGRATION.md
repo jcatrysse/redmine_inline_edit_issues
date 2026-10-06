@@ -81,6 +81,24 @@ API endpoints, rake tasks or cron. Scenarios in `test/e2e/`, evidence in `docs/e
 
 The same set on MariaDB 10.11 is in `docs/e2e/mariadb/`.
 
+## Together with the GEOxyz plugins it integrates with
+
+Checkout `/home/user/rm-together` (7.0-stable-GEOxyz, PostgreSQL) with
+`RMP_EXTRA_PLUGINS="https://github.com/jcatrysse/redmine_itil_priority.git@redmine70-migration
+https://github.com/jcatrysse/redmine_depending_custom_fields.git@redmine70-migration"`:
+
+- plugin tests: 30 runs, 135 assertions, 0 failures (the ITIL and depending CF plugins loaded);
+- browser, `test/e2e_together/geoxyz_plugins.mjs` after `test/e2e_together/seed.rb`
+  (`RMP_PORT=3001`, kept out of `test/e2e/` because it needs those plugins): ITIL impact and
+  urgency as selects, priority recalculated from them (Normal -> Low, still linked), depending
+  list filtered by its parent (BE: Gent/Brussel) and saved, extended user saved;
+  3 screenshots in `docs/e2e/together/`, 0 problems.
+- Finding, fixed: with the Priority column on the form, an inline impact/urgency change unlinked
+  the ITIL priority instead of recalculating it (the form sent the unchanged priority_id, which
+  ITIL's `safe_attributes=` takes as a manual choice). An unchanged priority is no longer assigned.
+- The custom_field_sql plugin (`sql_search` fields) was not installed together: it is not a
+  jcatrysse repository in this session's reach; the helper code for it is unchanged.
+
 E2E data: `test/e2e/seed.rb` adds a `developer` user (core Developer: may edit issues, no inline
 edit permission), custom fields (user, list, key/value, a text field read-only by workflow for "E2E
 full"), core Manager's workflow for "E2E full", and estimated times.
