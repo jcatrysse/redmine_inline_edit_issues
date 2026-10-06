@@ -1,16 +1,13 @@
 class InlineIssuesController < ApplicationController
 
-  if Rails::VERSION::MAJOR >= 5
-    before_action :find_project, :only => [:edit_multiple, :update_multiple]
-    before_action :retrieve_query, :get_ids_before_edit, :only => [:edit_multiple]
-    before_action :get_ids_before_update, :only => [:update_multiple]
-    before_action :find_projects, :authorize, :only => [:edit_multiple, :update_multiple]
-  else
-    before_filter :find_project, :only => [:edit_multiple, :update_multiple]
-    before_filter :retrieve_query, :get_ids_before_edit, :only => [:edit_multiple]
-    before_filter :get_ids_before_update, :only => [:update_multiple]
-    before_filter :find_projects, :authorize, :only => [:edit_multiple, :update_multiple]
-  end
+  before_action :find_project, :only => [:edit_multiple]
+  before_action :retrieve_query, :get_ids_before_edit, :only => [:edit_multiple]
+  before_action :find_projects, :only => [:edit_multiple]
+  # The issues come from the submitted form, so the permission is checked on their own projects
+  before_action :find_issues_to_update, :only => [:update_multiple]
+  # Declared once: a second `before_action :authorize` would replace this one and its :only list
+  before_action :authorize, :only => [:edit_multiple, :update_multiple]
+  before_action :check_attributes_editable, :only => [:update_multiple]
 
   helper :queries
   include QueriesHelper
@@ -61,16 +58,7 @@ class InlineIssuesController < ApplicationController
   end
 
   def update_multiple
-    # Extract the issue IDs from the params[:issues] keys
     @back_url = params[:back_url] || (@project ? project_issues_path(@project) : nil)
-    issue_ids = params[:issues].keys
-
-    # Find the issues based on those IDs
-    @issues = Issue.where(id: issue_ids)
-    raise ActiveRecord::RecordNotFound if @issues.empty?
-
-    @projects = @issues.collect(&:project).compact.uniq
-    @project = @projects.first if @projects.size == 1
 
     allow_edit_done_ratio = Setting.parent_issue_done_ratio != 'derived'
     allow_edit_dates = Setting.parent_issue_dates != 'derived'
@@ -102,14 +90,18 @@ class InlineIssuesController < ApplicationController
         attribute_hash = params[:issues][issue.id.to_s].to_unsafe_hash
       end
 
-      # Perform the update
-      unless issue.update(attribute_hash)
+      # Perform the update, through the same safe attributes and workflow rules as the issue form
+      issue.init_journal(User.current)
+      issue.safe_attributes = attribute_hash
+      unless issue.save
         errors += issue.errors.full_messages.map { |m| l(:label_issue) + " #{issue.id}: " + m }
       end
     end
 
     if errors.present?
       flash[:error] = errors.to_sentence
+    else
+      flash[:notice] = l(:notice_successful_update)
     end
     redirect_back_or_default @back_url
   end
@@ -130,16 +122,22 @@ class InlineIssuesController < ApplicationController
     @ids
   end
 
-  def get_ids_before_update
-    @ids = []
-    if params[:ids].present?
-      if params[:ids].class.name == "Array"
-        @ids = params[:ids]
-      elsif params[:ids].class.name == "String"
-        @ids = params[:ids].split(" ")
-      end
-    end
-    @ids
+  # Finds the issues submitted in params[:issues] (keyed by issue id), like core's find_issues
+  def find_issues_to_update
+    issue_ids = params[:issues].respond_to?(:keys) ? params[:issues].keys.map(&:to_s).uniq : []
+    @issues = Issue.where(:id => issue_ids).to_a
+    raise ActiveRecord::RecordNotFound if @issues.empty? || @issues.size != issue_ids.size
+    raise ::Unauthorized unless @issues.all?(&:visible?)
+    return render_error(:status => 422) unless params[:issues].values.all? { |v| v.respond_to?(:to_unsafe_hash) }
+
+    @projects = @issues.filter_map(&:project).uniq
+    @project = @projects.first if @projects.size == 1
+  rescue ActiveRecord::RecordNotFound
+    render_404
+  end
+
+  def check_attributes_editable
+    raise ::Unauthorized unless @issues.all?(&:attributes_editable?)
   end
 
   def find_project

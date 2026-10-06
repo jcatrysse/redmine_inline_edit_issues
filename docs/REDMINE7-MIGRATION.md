@@ -28,6 +28,10 @@ what is left. Written 2026-10-06 from a measured analysis (report at the bottom)
 ## Already on this branch
 
 - Repaired functional tests (commit "Repair the functional tests").
+- Security fix of `update_multiple` (work list 1/3): issues must exist and be visible, the
+  permission is checked on the projects of the submitted issues, every issue must have editable
+  attributes, values go through `init_journal` + `safe_attributes=` (workflow, editauthor, ITIL).
+  16 tests, 9 failures and 2 errors without the fix.
 
 ## Baseline (2026-10-06, before any change, branch head `f60940a`)
 
