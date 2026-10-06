@@ -31,6 +31,9 @@ class InlineIssuesControllerTest < Redmine::ControllerTest
     get :edit_multiple, :params => {:project_id => 'ecookbook', :ids => [1, 2]}
     assert_response :success
     assert_select 'input#inline_edit_reset[type=reset][value=?]', ::I18n.t(:button_reset, :locale => :nl)
+    # shown by the JS tooltip for an empty original value
+    assert_select 'div#field_original[data-blank=?]', ::I18n.t(:label_none, :locale => :nl)
+    assert_select 'h2', :text => 'Inline bewerken'
   end
 
   def test_edit_multiple_without_permission_should_be_refused

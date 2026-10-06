@@ -33,12 +33,12 @@ $(document).ready(function () {
             }
         }).hover(function () {
             if (!($(this).is(":checkbox"))) {
-                var originalValue = getDefaultValue($(this)) || "--BLANK--";
+                var originalValue = getDefaultValue($(this)) || $('#field_original').data('blank');
                 displayOriginalValue($(this), originalValue);
             }
         }, function () {
             $('#field_original').hide();
-            $('#field_original_value').html(" ");
+            $('#field_original_value').text(" ");
         });
     });
 
@@ -124,7 +124,8 @@ $(document).ready(function () {
     function displayOriginalValue(element, originalValue) {
         var pos = element.offset();
         var height = element.outerHeight();
-        $('#field_original_value').html(originalValue);
+        // text, not html: the value is what users typed (a subject with markup must not run)
+        $('#field_original_value').text(originalValue);
         $('#field_original').css({
             position: "absolute",
             top: (pos.top + height + 5) + "px",
