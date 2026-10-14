@@ -329,6 +329,11 @@ class InlineIssuesControllerTest < Redmine::ControllerTest
       adapter = ActiveJob::Base.queue_adapter
       ActiveJob::Base.queue_adapter = :test
       Role.find(1).add_permission!(:use_webhooks)
+      # redmine_view_issue_description (a GEOxyz plugin) sends issue webhooks only to users who may
+      # see the description; give the hook's user that permission where the plugin is installed
+      if Redmine::Plugin.installed?(:redmine_view_issue_description)
+        Role.find(1).add_permission!(:view_issue_description)
+      end
       hook = Webhook.new(:url => 'https://example.com/hook', :user => User.find(2),
                          :projects => [Project.find(1)], :events => ['issue.updated'], :active => true)
       hook.save!(:validate => false)
