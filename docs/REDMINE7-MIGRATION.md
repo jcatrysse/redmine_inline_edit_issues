@@ -213,6 +213,22 @@ Jan answered "los de openstaande zaken op" (2026-10-06): resolved after the reco
 - OpenAI review rounds 4 to 6: five more findings, all checked and rejected with a test or the
   code that disproves them (docs/reviews/); none accepted.
 
+## Combined run of the GEOxyz plugins (2026-10-14)
+
+Reported by the coordinator (44 plugins on redmine70-migration, 7.0-stable-GEOxyz 1d8c2a3,
+PostgreSQL 16, this branch at 35d11b6):
+
+1. One failure with all plugins: the webhook test, because redmine_view_issue_description only
+   sends issue webhooks to users who may see the description (intended). Reproduced with that
+   plugin added to the together checkout; fixed in the test by granting `view_issue_description`
+   when the plugin is installed. 42 runs green with and without it.
+2. Kit H6: `start_server.sh` put `email_delivery` under `default:` in configuration.yml, so the test
+   environment delivered mail to files. It now writes it for `$RMP_SERVER_ENV` and converts the
+   file it wrote earlier (test: `:test`, production: `:file`, checked).
+
+Also seen: redmine_view_issue_description requires `deface` and declares it in its own Gemfile, so
+dropping `deface` from this plugin's PluginGemfile does not break it (see "After the upgrade").
+
 ## Left as is
 
 - **Core (Redmine 7, jcatrysse/redmine 7.0-stable-GEOxyz)**: `POST /issues/context_menu` with
